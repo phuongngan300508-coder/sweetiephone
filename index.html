@@ -121,6 +121,49 @@
     0%, 100% { opacity: 1; }
     50% { opacity: 0.5; }
 }
+
+        /* Hiển thị số dư kẹo */
+.candy-balance {
+    background: #FFF;
+    color: #FF85A2;
+    padding: 5px 15px;
+    border-radius: 20px;
+    font-weight: bold;
+    font-size: 0.9rem;
+    border: 2px solid var(--pink-main);
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    margin-bottom: 10px;
+}
+
+/* Nút cửa hàng tinh tế tại sảnh */
+#btn-open-shop {
+    background: none;
+    color: var(--pink-dark);
+    text-decoration: underline;
+    font-size: 0.8rem;
+    width: auto;
+    padding: 0;
+    margin: 0;
+    cursor: pointer;
+}
+
+/* Shop Popup */
+.shop-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: white;
+    padding: 10px 15px;
+    margin: 8px 0;
+    border-radius: 15px;
+    border: 1px solid #FFE4E8;
+}
+.shop-price {
+    color: #4CAF50;
+    font-weight: bold;
+}
 </style>
 </head>
 <body>
@@ -151,10 +194,12 @@
     <div onclick="toggleHelp(true)" style="display: inline-block; margin-top: 10px; color: #888; cursor: pointer; font-size: 0.8rem;">
         Chưa biết cách chơi? <span style="color: var(--pink-dark); font-weight: bold;">Xem hướng dẫn</span>
     </div>
+    <div onclick="openShop(true)" id="btn-open-shop">Cửa hàng kẹo ngọt 🍬</div>
 </div>
 
     <!-- MÀN HÌNH 2: PHÒNG CHỜ -->
     <div id="screen-lobby" class="app-card hidden">
+        <div class="candy-balance">🍬 <span class="candy-value">0</span></div>
         <h3 id="lobby-info" style="color: var(--pink-dark);">Phòng Chờ</h3>
         <ul id="player-list" style="list-style:none; padding:0;"></ul>
         <p style="font-size: 0.8rem; color: #888;">Đợi chủ phòng bắt đầu nhé...</p>
@@ -181,6 +226,7 @@
 
     <!-- MÀN HÌNH KẾT QUẢ -->
 <div id="screen-showcase" class="app-card hidden">
+    <div class="candy-balance">🍬 <span class="candy-value">0</span></div>
     <h2 style="color: var(--pink-dark);">Triển lãm tác phẩm 🎨</h2>
     <div id="showcase-content" style="max-height: 60vh; overflow-y: auto; margin-bottom: 10px;"></div>
     
@@ -221,6 +267,28 @@
         </div>
 
         <button onclick="toggleHelp(false)" style="margin-top: 20px;">Đã rõ, chơi thôi! ✨</button>
+    </div>
+</div>
+
+    <div id="modal-shop" class="hidden" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); backdrop-filter: blur(5px); z-index: 3000; display: flex; align-items: center; justify-content: center;">
+    <div class="app-card" style="width: 90%; max-width: 400px;">
+        <h3 style="color: var(--pink-dark);">🍬 Tiệm Kẹo Ngọt</h3>
+        <div class="candy-balance" style="margin-bottom: 15px;">Số dư: <span id="shop-candy-value">0</span></div>
+        
+        <div style="text-align: left; margin-bottom: 15px;">
+            <div class="shop-item"><span>1,000 kẹo</span> <span class="shop-price">1.000đ</span></div>
+            <div class="shop-item"><span>5,000 kẹo</span> <span class="shop-price">5.000đ</span></div>
+            <div class="shop-item"><span>10,000 kẹo</span> <span class="shop-price">10.000đ</span></div>
+            <div class="shop-item"><span>20,000 kẹo</span> <span class="shop-price">20.000đ</span></div>
+        </div>
+
+        <div style="border-top: 1px dashed #ccc; padding-top: 15px;">
+            <p style="font-size: 0.75rem; color: #888;">Nạp thêm kẹo:</p>
+            <input type="number" id="input-cheat-candy" placeholder="Nhập số lượng...">
+            <button onclick="addCandyFromInput()" style="background: #4CAF50; font-size: 0.8rem;">Nhận kẹo ✨</button>
+        </div>
+        
+        <button onclick="openShop(false)" style="background: #ccc; margin-top: 10px;">Đóng</button>
     </div>
 </div>
     <!-- FIREBASE SDK (Dùng bản CDN để chạy ngay không cần cài đặt) -->
@@ -566,7 +634,17 @@ function showDrawArea(text) {
         let currentShowcasePlayerIndex = 0;
 let currentStepIndex = 1;
         
-        function renderShowcase(data) {
+        let rewardClaimed = false; // Biến cờ để đảm bảo chỉ cộng kẹo 1 lần mỗi ván
+
+function renderShowcase(data) {
+    // --- LOGIC CỘNG KẸO MỚI ---
+    if (!rewardClaimed) {
+        updateCandyUI(5); // Cộng 5 kẹo
+        rewardClaimed = true; // Đánh dấu đã nhận thưởng
+        alert("Chúc mừng! Bạn nhận được 5 kẹo ngọt vì đã hoàn thành ván chơi! 🍬✨");
+    }
+    // --------------------------
+
     showScreen('screen-showcase');
     const container = document.getElementById('showcase-content');
     container.innerHTML = "";
@@ -635,7 +713,7 @@ let currentStepIndex = 1;
 
     container.innerHTML = html + controlsHtml;
 }
-
+        
 // Hàm đồng bộ trạng thái triển lãm lên Firebase (Host gọi)
 window.syncShowcase = function(pIdx, sIdx) {
     if (!isHost) return;
@@ -646,6 +724,7 @@ window.syncShowcase = function(pIdx, sIdx) {
 };
         window.restartGame = function() {
     if (!isHost) return;
+    rewardClaimed = false;
 
     const roomRef = ref(db, `rooms/${currentRoom}`);
     update(roomRef, {
@@ -666,6 +745,7 @@ window.addEventListener('load', () => {
     if (savedName) document.getElementById('input-name').value = savedName;
     if (savedRoom) document.getElementById('input-room').value = savedRoom;
     setTimeout(() => showLoading(false), 1000);
+    updateCandyUI(0);
 });
 
         window.copyRoomId = function() {
@@ -708,6 +788,43 @@ window.toggleHelp = function(show) {
         setTimeout(() => loader.classList.add('hidden'), 500); // Ẩn hẳn sau khi mờ dần
     }
 };
+
+        // Lấy số dư kẹo hiện tại
+function getMyCandy() {
+    return parseInt(localStorage.getItem('sweetie_candy') || '0');
+}
+
+// Cập nhật số dư kẹo và hiển thị lên UI
+function updateCandyUI(amountChange) {
+    let current = getMyCandy();
+    let newTotal = current + amountChange;
+    localStorage.setItem('sweetie_candy', newTotal);
+
+    // Cập nhật tất cả các chỗ hiển thị kẹo trên màn hình
+    document.querySelectorAll('.candy-value').forEach(el => el.innerText = newTotal);
+    const shopValue = document.getElementById('shop-candy-value');
+    if(shopValue) shopValue.innerText = newTotal;
+}
+
+// Mở/Đóng Shop
+window.openShop = function(show) {
+    const shop = document.getElementById('modal-shop');
+    if(show) {
+        shop.classList.remove('hidden');
+        updateCandyUI(0); // Chỉ để cập nhật số hiển thị
+    } else {
+        shop.classList.add('hidden');
+    }
+}
+
+// Hàm nạp kẹo thủ công trong shop
+window.addCandyFromInput = function() {
+    const val = parseInt(document.getElementById('input-cheat-candy').value);
+    if(isNaN(val) || val <= 0) return alert("Nhập số kẹo hợp lệ nhé!");
+    updateCandyUI(val);
+    document.getElementById('input-cheat-candy').value = "";
+    alert(`Đã nạp thành công ${val} kẹo! ✨`);
+}
     </script>
 </body>
 </html>
