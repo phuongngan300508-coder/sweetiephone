@@ -55,64 +55,32 @@
         background: white; border: 2px solid var(--pink-main);
         border-radius: 15px; touch-action: none; width: 100%; height: 300px;
     }
-    
+    .hidden { display: none !important; }
     #player-list li {
         background: white; padding: 8px; margin: 5px 0;
         border-radius: 10px; color: var(--pink-dark);
         list-style: none;
     }
 
-       /* Nút Shop nổi ở góc trên bên phải - Chỉ xuất hiện khi ở trong screen-lobby */
-.btn-shop-lobby {
-    position: absolute;
-    top: 15px;
-    right: 15px;
-    width: auto;
-    padding: 6px 12px;
-    background: white;
+        #modal-help {
+    animation: fadeIn 0.3s ease-out;
+}
+/* Đảm bảo nội dung hướng dẫn có thể cuộn nếu màn hình nhỏ */
+#modal-help .app-card {
+    box-shadow: 0 20px 50px rgba(0,0,0,0.1);
+}
+
+        #modal-help h4 {
+    font-size: 1rem;
+}
+#modal-help b {
     color: var(--pink-dark);
-    border-radius: 20px;
-    font-size: 0.8rem;
-    font-weight: bold;
-    border: 1px solid var(--pink-main);
-    box-shadow: 0 4px 10px rgba(255, 133, 162, 0.2);
-    cursor: pointer;
-    z-index: 20;
+}
+#modal-help ul li {
+    margin-bottom: 8px;
 }
 
-/* Thiết lập mặc định cho Modal (ẩn) */
-#modal-shop, #modal-help {
-    position: fixed;
-    top: 0; left: 0;
-    width: 100%; height: 100%;
-    background: rgba(0, 0, 0, 0.4); 
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
-    display: none; /* Mặc định là ẩn */
-    align-items: center;
-    justify-content: center;
-    z-index: 9999;
-}
-
-/* Khi KHÔNG có class hidden thì mới hiện flex */
-#modal-shop:not(.hidden), #modal-help:not(.hidden) {
-    display: flex;
-}
-
-/* Class hidden để ẩn tuyệt đối */
-.hidden {
-    display: none !important;
-}
-
-/* Ép Card nội dung bên trong Popup phải có thứ tự hiển thị ưu tiên */
-#modal-shop .app-card, #modal-help .app-card {
-    z-index: 10000; 
-    position: relative;
-    box-shadow: 0 20px 60px rgba(0,0,0,0.2);
-    animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-}
-
-/* Giữ nguyên thiết kế số dư nhưng bỏ bàn tay trỏ vào */
+        /* Badge hiển thị số dư kẹo */
 .sweetie-balance {
     background: white;
     color: var(--pink-dark);
@@ -124,7 +92,7 @@
     align-items: center;
     gap: 5px;
     border: 1px solid var(--pink-main);
-    cursor: default; /* Không hiện bàn tay */
+    cursor: pointer;
     margin-bottom: 10px;
 }
 
@@ -141,16 +109,6 @@
 }
 
 .shop-item b { color: #d63384; }
-
-@keyframes popIn {
-    from { transform: scale(0.8); opacity: 0; }
-    to { transform: scale(1); opacity: 1; }
-}
-
-/* Khi ẩn thì mới dùng display none */
-#modal-shop.hidden, #modal-help.hidden {
-    display: none !important;
-}
 </style>
 </head>
 <body>
@@ -185,11 +143,8 @@
 
 <!-- MÀN HÌNH 2: PHÒNG CHỜ -->
 <div id="screen-lobby" class="app-card hidden">
-    <!-- Nút cửa hàng mới ở góc phải -->
-    <div class="btn-shop-lobby" onclick="toggleShop(true)">🍭 Cửa hàng</div>
-
-    <!-- Hiển thị kẹo - Đã bỏ onclick -->
-    <div class="sweetie-balance" style="margin-bottom: 15px;">
+    <!-- THÊM: Hiển thị kẹo -->
+    <div class="sweetie-balance" onclick="toggleShop(true)" style="margin-bottom: 15px;">
         🍬 <span class="sweetie-val">0</span> Kẹo ngọt
     </div>
     
@@ -222,9 +177,9 @@
     <h2 style="color: var(--pink-dark);">Triển lãm tác phẩm 🎨</h2>
     
     <!-- THÊM: Hiển thị kẹo -->
-    <div class="sweetie-balance" style="margin-bottom: 10px; cursor: default;">
-    🍬 <span class="sweetie-val">0</span> Kẹo ngọt
-</div>
+    <div class="sweetie-balance" onclick="toggleShop(true)" style="margin-bottom: 10px;">
+        🍬 <span class="sweetie-val">0</span> Kẹo ngọt
+    </div>
 
     <div id="showcase-content" style="max-height: 60vh; overflow-y: auto; margin-bottom: 10px;"></div>
     
@@ -264,25 +219,6 @@
         </div>
 
         <button onclick="toggleHelp(false)" style="margin-top: 20px;">Đã rõ, chơi thôi! ✨</button>
-    </div>
-</div>
-
-    <!-- Popup Cửa hàng -->
-<div id="modal-shop" class="hidden">
-    <div class="app-card" style="width: 90%; max-width: 400px; position: relative;">
-        <div onclick="toggleShop(false)" style="position: absolute; top: 15px; right: 20px; cursor: pointer; font-size: 1.2rem; color: var(--pink-dark);">✕</div>
-        
-        <h3 style="color: var(--pink-dark);">🍭 Tiệm Kẹo Ngọt</h3>
-        <p style="font-size: 0.8rem; color: #888;">Số dư của bạn: <span id="shop-balance" style="font-weight: bold; color: var(--pink-dark);">0</span> 🍬</p>
-        
-        <div style="margin: 20px 0; text-align: left; max-height: 40vh; overflow-y: auto;">
-            <div class="shop-item"><span>Đổi 1.000đ</span> <button onclick="buyItem(1000, 1000)" style="width: auto; margin:0; padding: 8px 15px; font-size: 0.8rem;">1.000 🍬</button></div>
-            <div class="shop-item"><span>Đổi 5.000đ</span> <button onclick="buyItem(5000, 5000)" style="width: auto; margin:0; padding: 8px 15px; font-size: 0.8rem;">5.000 🍬</button></div>
-            <div class="shop-item"><span>Đổi 10.000đ</span> <button onclick="buyItem(10000, 10000)" style="width: auto; margin:0; padding: 8px 15px; font-size: 0.8rem;">10.000 🍬</button></div>
-            <div class="shop-item"><span>Đổi 20.000đ</span> <button onclick="buyItem(20000, 20000)" style="width: auto; margin:0; padding: 8px 15px; font-size: 0.8rem;">20.000 🍬</button></div>
-        </div>
-        
-        <button onclick="toggleShop(false)" style="background: #eee; color: #666; margin-top: 10px;">Để sau ✨</button>
     </div>
 </div>
     <!-- FIREBASE SDK (Dùng bản CDN để chạy ngay không cần cài đặt) -->
@@ -759,26 +695,15 @@ window.toggleHelp = function(show) {
 // Hàm cập nhật hiển thị số dư trên toàn bộ giao diện
 function updateSweetieUI(amount) {
     mySweeties = amount;
-    
-    // Cập nhật các badge kẹo (dùng class nên sẽ không bị lỗi nếu không tìm thấy)
     const elements = document.querySelectorAll('.sweetie-val');
     elements.forEach(el => el.innerText = mySweeties);
-    
-    // Cập nhật số dư trong cửa hàng (Kiểm tra ID tránh lỗi null)
-    const shopBalanceEl = document.getElementById('shop-balance');
-    if (shopBalanceEl) {
-        shopBalanceEl.innerText = mySweeties;
-    }
+    document.getElementById('shop-balance').innerText = mySweeties;
 }
-        
+
+// Lấy số dư từ Firebase khi đăng nhập
 async function fetchSweeties() {
-    if (!myId) return;
-    const userRef = ref(db, `users/${myId}/sweeties`);
-    // Sử dụng onValue để lắng nghe sự thay đổi thời gian thực
-    onValue(userRef, (snapshot) => {
-        const val = snapshot.val() || 0;
-        updateSweetieUI(val);
-    });
+    const snap = await get(ref(db, `users/${myId}/sweeties`));
+    updateSweetieUI(snap.val() || 0);
 }
 
 // Hàm cộng Kẹo khi hoàn thành màn chơi (Chỉ Host gọi 1 lần khi kết thúc)
