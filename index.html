@@ -6,49 +6,62 @@
     <title>Sweetie Phone 🎀</title>
   <link rel="manifest" href="manifest.json">
     <style>
-        :root {
-            --pink-main: #FFC1CC;
-            --pink-dark: #FF85A2;
-            --glass: rgba(255, 255, 255, 0.7);
-        }
-        body {
-            margin: 0; padding: 0;
-            background: linear-gradient(135deg, #FFF0F5 0%, #FFDEE9 100%);
-            font-family: 'Lexend', sans-serif;
-            display: flex; flex-direction: column; align-items: center; min-height: 100vh;
-        }
-        .app-card {
-            background: var(--glass);
-            backdrop-filter: blur(15px);
-            border: 2px solid white;
-            border-radius: 30px;
-            padding: 25px;
-            margin-top: 30px;
-            width: 85%; max-width: 400px;
-            box-shadow: 0 10px 25px rgba(255, 133, 162, 0.15);
-            text-align: center;
-        }
-        input, button {
-            width: 100%; padding: 12px; margin: 10px 0;
-            border-radius: 15px; border: none; outline: none;
-            box-sizing: border-box;
-        }
-        input { background: white; color: #555; border: 1px solid #eee; }
-        button {
-            background: var(--pink-dark); color: white;
-            font-weight: bold; cursor: pointer; transition: 0.2s;
-        }
-        button:active { transform: scale(0.95); }
-        canvas {
-            background: white; border: 2px solid var(--pink-main);
-            border-radius: 15px; touch-action: none; width: 100%; height: 300px;
-        }
-        .hidden { display: none; }
-        #player-list li {
-            background: white; padding: 8px; margin: 5px 0;
-            border-radius: 10px; color: var(--pink-dark);
-        }
-    </style>
+    :root {
+        --pink-main: #FFC1CC;
+        --pink-dark: #FF85A2;
+        --glass: rgba(255, 255, 255, 0.7);
+    }
+    body {
+        margin: 0; padding: 0;
+        background: linear-gradient(135deg, #FFF0F5 0%, #FFDEE9 100%);
+        font-family: 'Lexend', sans-serif;
+        /* Chỉnh sửa chính ở đây để căn giữa */
+        display: flex; 
+        flex-direction: column; 
+        align-items: center; 
+        justify-content: center; /* Căn giữa theo chiều dọc */
+        min-height: 100vh;
+        overflow-x: hidden;
+    }
+    .app-card {
+        background: var(--glass);
+        backdrop-filter: blur(15px);
+        -webkit-backdrop-filter: blur(15px);
+        border: 2px solid white;
+        border-radius: 30px;
+        padding: 25px;
+        /* Bỏ margin-top để card không bị đẩy xuống dưới */
+        margin: 20px 0; 
+        width: 85%; max-width: 400px;
+        box-shadow: 0 10px 25px rgba(255, 133, 162, 0.15);
+        text-align: center;
+        /* Đảm bảo card luôn nằm trên cùng của các lớp khác */
+        position: relative;
+        z-index: 10;
+    }
+    input, button {
+        width: 100%; padding: 12px; margin: 10px 0;
+        border-radius: 15px; border: none; outline: none;
+        box-sizing: border-box;
+        font-family: 'Lexend', sans-serif;
+    }
+    input { background: white; color: #555; border: 1px solid #eee; }
+    button {
+        background: var(--pink-dark); color: white;
+        font-weight: bold; cursor: pointer; transition: 0.2s;
+    }
+    button:active { transform: scale(0.95); }
+    canvas {
+        background: white; border: 2px solid var(--pink-main);
+        border-radius: 15px; touch-action: none; width: 100%; height: 300px;
+    }
+    .hidden { display: none !important; }
+    #player-list li {
+        background: white; padding: 8px; margin: 5px 0;
+        border-radius: 10px; color: var(--pink-dark);
+        list-style: none;
+    }
+</style>
 </head>
 <body>
 <!-- Bộ đếm tiến độ nổi ở góc trên bên phải -->
