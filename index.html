@@ -86,6 +86,12 @@
         <button onclick="submitTurn()">GỬI ĐI ✨</button>
     </div>
 
+    <div id="screen-showcase" class="app-card hidden">
+    <h2 style="color: var(--pink-dark);">Triển lãm tác phẩm 🎨</h2>
+    <div id="showcase-content"></div>
+    <button onclick="location.reload()">Chơi lại từ đầu 🔄</button>
+</div>
+    
     <!-- FIREBASE SDK (Dùng bản CDN để chạy ngay không cần cài đặt) -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-app.js";
@@ -108,6 +114,8 @@
         let myId = "player_" + Math.random().toString(36).substr(2, 5);
         let currentRoom = "";
         let isHost = false;
+        let playerOrder = []; // Thứ tự xoay vòng người chơi
+let myChainOwnerId = ""; // Chuỗi mà bạn đang thực hiện (ví dụ: đang vẽ cho chuỗi của Player B)
 
         // XỬ LÝ VẼ CANVAS
         const canvas = document.getElementById('drawCanvas');
@@ -167,65 +175,127 @@
         }
 
         function listenRoom() {
-            onValue(ref(db, `rooms/${currentRoom}`), (snapshot) => {
-                const data = snapshot.val();
-                if(!data) return;
+    onValue(ref(db, `rooms/${currentRoom}`), (snapshot) => {
+        const data = snapshot.val();
+        if(!data) return;
 
-                // Cập nhật danh sách người chơi
-                const pList = document.getElementById('player-list');
-                pList.innerHTML = "";
-                const players = data.players;
-                for(let id in players) {
-                    pList.innerHTML += `<li>🌸 ${players[id].name} ${id === myId ? '(Bạn)' : ''}</li>`;
-                }
-
-                // Chuyển màn hình khi game bắt đầu
-                if(data.status === "playing") {
-                    setupTurn(data);
-                }
-            });
-        }
-
-        window.startGame = function() {
-            update(ref(db, `rooms/${currentRoom}`), { 
-                status: "playing", 
-                currentRound: 1 
-            });
-        };
-
-        function setupTurn(data) {
-            showScreen('screen-game');
-            const round = data.currentRound;
-            const isOdd = round % 2 !== 0;
-
-            if(isOdd) {
-                document.getElementById('area-write').classList.remove('hidden');
-                document.getElementById('area-draw').classList.add('hidden');
-                document.getElementById('prompt-area').innerText = (round === 1) ? "Ghi một câu đố bất kỳ:" : "Bạn thấy hình này giống gì?";
-            } else {
-                document.getElementById('area-write').classList.add('hidden');
-                document.getElementById('area-draw').classList.remove('hidden');
-                document.getElementById('prompt-area').innerText = "Vẽ lại câu này nhé:";
+        // 1. Cập nhật danh sách người chơi trong phòng chờ
+        const pList = document.getElementById('player-list');
+        if (pList) {
+            pList.innerHTML = "";
+            const players = data.players;
+            for(let id in players) {
+                pList.innerHTML += `<li>🌸 ${players[id].name} ${id === myId ? '(Bạn)' : ''}</li>`;
             }
         }
 
-        window.submitTurn = function() {
-            const isOdd = document.getElementById('area-write').classList.contains('hidden') === false;
-            let value = isOdd ? document.getElementById('input-phrase').value : canvas.toDataURL();
+        // 2. Xử lý trạng thái game
+        if (data.status === "playing") {
+            // Kiểm tra xem người chơi này đã nộp bài cho vòng hiện tại chưa
+            const hasSubmitted = data.submitted && data.submitted[data.currentRound] && data.submitted[data.currentRound][myId];
             
-            if(!value || value === "") return alert("Đừng để trống nha! ❤️");
+            if (hasSubmitted) {
+                // Nếu đã nộp, hiển thị màn hình chờ "Đợi bạn bè..."
+                document.getElementById('screen-game').classList.add('hidden');
+                // Bạn có thể thêm một div thông báo chờ vào HTML
+                alert("Đang đợi mọi người vẽ/viết xong nhé... ✨"); 
+            } else {
+                // Nếu chưa nộp, thiết lập màn chơi cho vòng này
+                setupTurn(data);
+            }
+        } 
+        else if (data.status === "showcase") {
+            // Khi game kết thúc, chuyển sang màn hình xem kết quả
+            renderShowcase(data);
+        }
+    });
+}
 
-            // Gửi dữ liệu lên Database
-            update(ref(db, `rooms/${currentRoom}/data/round_current/${myId}`), {
-                content: value,
-                author: myId
-            }).then(() => {
-                alert("Đã gửi bài! Đang chờ bạn bè... ✨");
-                // Reset form
-                document.getElementById('input-phrase').value = "";
-                clearCanvas();
+        window.startGame = async function() {
+    const snapshot = await get(ref(db, `rooms/${currentRoom}/players`));
+    const players = Object.keys(snapshot.val());
+    if (players.length < 2) return alert("Cần ít nhất 2 người để chơi!");
+
+    // Xáo trộn thứ tự người chơi để tạo vòng tròn giao bài
+    const shuffled = players.sort(() => Math.random() - 0.5);
+    
+    update(ref(db, `rooms/${currentRoom}`), { 
+        status: "playing", 
+        currentRound: 1,
+        playerOrder: shuffled,
+        totalRounds: shuffled.length // Số vòng chơi bằng số người chơi
+    });
+};
+
+       function setupTurn(data) {
+    showScreen('screen-game');
+    const { currentRound, playerOrder } = data;
+    const myIndex = playerOrder.indexOf(myId);
+    
+    // Thuật toán xoay vòng: Vòng 1 làm cho mình, vòng 2 làm cho người tiếp theo...
+    const ownerIndex = (myIndex - (currentRound - 1) + playerOrder.length) % playerOrder.length;
+    myChainOwnerId = playerOrder[ownerIndex];
+
+    const isOdd = currentRound % 2 !== 0;
+    const promptArea = document.getElementById('prompt-area');
+
+    if (currentRound === 1) {
+        // Vòng đầu: Tự viết câu đố
+        showWriteArea("Ghi một câu đố bất kỳ:");
+    } else {
+        // Các vòng sau: Lấy dữ liệu của vòng trước từ "người phía trước" trong chuỗi
+        get(ref(db, `rooms/${currentRoom}/chains/${myChainOwnerId}/round_${currentRound - 1}`))
+            .then(snap => {
+                const prevContent = snap.val().content;
+                if (isOdd) {
+                    // Vòng lẻ (đoán): Xem hình, ghi chữ
+                    showWriteArea("Bạn thấy hình này vẽ gì?");
+                    // Hiển thị hình vẽ cũ bên dưới prompt (cần thêm thẻ img vào HTML)
+                    promptArea.innerHTML += `<br><img src="${prevContent}" style="width:100%; border-radius:10px;">`;
+                } else {
+                    // Vòng chẵn (vẽ): Xem chữ, vẽ hình
+                    showDrawArea(`Vẽ lại câu này: "${prevContent}"`);
+                }
             });
-        };
+    }
+}
+
+        window.submitTurn = async function() {
+    const isOdd = !document.getElementById('area-write').classList.contains('hidden');
+    let value = isOdd ? document.getElementById('input-phrase').value : canvas.toDataURL();
+    if(!value) return alert("Đừng để trống!");
+
+    // Lưu vào chuỗi của người chủ (myChainOwnerId)
+    await set(ref(db, `rooms/${currentRoom}/chains/${myChainOwnerId}/round_${data.currentRound}`), {
+        content: value,
+        authorName: document.getElementById('input-name').value
+    });
+
+    // Đánh dấu tôi đã xong vòng này
+    await set(ref(db, `rooms/${currentRoom}/submitted/${data.currentRound}/${myId}`), true);
+
+    // Kiểm tra nếu tất cả đã xong (Chỉ Host kiểm tra)
+    if (isHost) {
+        checkAllSubmitted(data.currentRound);
+    }
+};
+
+async function checkAllSubmitted(round) {
+    const snapPlayers = await get(ref(db, `rooms/${currentRoom}/players`));
+    const snapDone = await get(ref(db, `rooms/${currentRoom}/submitted/${round}`));
+    
+    const total = Object.keys(snapPlayers.val()).length;
+    const done = snapDone.exists() ? Object.keys(snapDone.val()).length : 0;
+
+    if (done >= total) {
+        const totalRounds = (await get(ref(db, `rooms/${currentRoom}/totalRounds`))).val();
+        if (round >= totalRounds) {
+            update(ref(db, `rooms/${currentRoom}`), { status: "showcase" });
+        } else {
+            update(ref(db, `rooms/${currentRoom}`), { currentRound: round + 1 });
+        }
+    }
+}
 
         function showScreen(id) {
             document.querySelectorAll('.app-card').forEach(s => s.classList.add('hidden'));
