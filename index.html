@@ -642,11 +642,20 @@ canvas.addEventListener('touchmove', (e) => { e.preventDefault(); draw(e); });
 
         // 3. Logic chuyển trạng thái và vòng chơi
         if (data.status === "waiting") {
-            lastSeenRound = 0; 
-            document.getElementById('lobby-info').innerText = "Phòng Chờ";
-            showScreen('screen-lobby');
-            if (isHost) document.getElementById('btn-start').classList.remove('hidden');
-        } 
+    lastSeenRound = 0; 
+    
+    // THÊM LOGIC RESET VOTE CÁ NHÂN TẠI ĐÂY
+    // Tìm và xóa tất cả các key có tên 'voted_' và 'processed_votes_'
+    for (let key in localStorage) {
+        if (key.startsWith('voted_') || key.startsWith('processed_votes_')) {
+            localStorage.removeItem(key);
+        }
+    }
+    
+    document.getElementById('lobby-info').innerText = "Phòng Chờ";
+    showScreen('screen-lobby');
+    if (isHost) document.getElementById('btn-start').classList.remove('hidden');
+}
         else if (data.status === "playing") {
             const serverRound = data.currentRound;
             const hasSubmitted = data.submitted && data.submitted[serverRound] && data.submitted[serverRound][myId];
@@ -923,13 +932,14 @@ window.syncShowcase = function(pIdx, sIdx) {
 
     const roomRef = ref(db, `rooms/${currentRoom}`);
     update(roomRef, {
-        status: "waiting",        // Đưa về trạng thái chờ
-        currentRound: null,       // Xóa vòng chơi hiện tại
-        submitted: null,          // Xóa các bài đã nộp
-        chains: null,             // Xóa dữ liệu album ván cũ
-        playerOrder: null         // Xóa thứ tự chơi cũ
+        status: "waiting",
+        currentRound: null,
+        submitted: null,
+        chains: null,
+        playerOrder: null,
+        votes: null // <--- THÊM DÒNG NÀY: Xóa sạch dữ liệu vote trên Firebase
     }).then(() => {
-        console.log("Đã reset phòng thành công!");
+        console.log("Đã reset phòng và lượt vote thành công!");
     });
 };
 
@@ -1067,10 +1077,10 @@ window.openShop = function(show) {
 
         // Hàm gửi bình chọn
 window.castVote = function(targetId, targetName) {
-    const voteKey = `voted_${currentRoom}_${targetId}`;
+    // Sử dụng currentRoom trong key để đảm bảo reset đúng phòng
+    const voteKey = `voted_${currentRoom}_${targetId}`; 
     if (localStorage.getItem(voteKey)) return;
 
-    // 1. Đánh dấu đã vote cục bộ để không bấm lại được
     localStorage.setItem(voteKey, "true");
     const btn = document.getElementById(`vote-btn-${targetId}`);
     if (btn) {
@@ -1078,8 +1088,6 @@ window.castVote = function(targetId, targetName) {
         btn.innerText = "✅ Đã Vote";
     }
 
-    // 2. Gửi tín hiệu vote lên Firebase để người đó nhận được kẹo
-    // Chúng ta tạo một node tạm thời cho các lượt vote
     const voteRef = ref(db, `rooms/${currentRoom}/votes/${targetId}/${myId}`);
     set(voteRef, Date.now());
     
