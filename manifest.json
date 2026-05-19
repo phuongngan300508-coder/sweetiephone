@@ -1,0 +1,16 @@
+{
+  "name": "Sweetie Phone",
+  "short_name": "Phone",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#FCE4EC",
+  "theme_color": "#F8BBD0",
+  "icons": [
+    {
+      "src": "https://i.postimg.cc/GprzXyBH/Gemini-Generated-Image-hyizpxhyizpxhyiz.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
