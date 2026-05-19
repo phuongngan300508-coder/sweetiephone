@@ -62,25 +62,47 @@
         list-style: none;
     }
 
-        #modal-help {
-    animation: fadeIn 0.3s ease-out;
-}
-/* Đảm bảo nội dung hướng dẫn có thể cuộn nếu màn hình nhỏ */
-#modal-help .app-card {
-    box-shadow: 0 20px 50px rgba(0,0,0,0.1);
-}
-
-        #modal-help h4 {
-    font-size: 1rem;
-}
-#modal-help b {
+       /* Nút Shop nổi ở góc trên bên phải - Chỉ xuất hiện khi ở trong screen-lobby */
+.btn-shop-lobby {
+    position: absolute;
+    top: 15px;
+    right: 15px;
+    width: auto;
+    padding: 6px 12px;
+    background: white;
     color: var(--pink-dark);
-}
-#modal-help ul li {
-    margin-bottom: 8px;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: bold;
+    border: 1px solid var(--pink-main);
+    box-shadow: 0 4px 10px rgba(255, 133, 162, 0.2);
+    cursor: pointer;
+    z-index: 20;
 }
 
-/* Tìm đoạn này trong CSS của bạn và sửa cursor thành default */
+/* Ép các Modal/Popup luôn nằm trên cùng tuyệt đối của mọi màn hình */
+#modal-shop, #modal-help {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background: rgba(0, 0, 0, 0.4); /* Làm nền tối mờ để card trắng nổi bật hẳn lên */
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999; /* Con số cao nhất để đè lên mọi thứ */
+}
+
+/* Ép Card nội dung bên trong Popup phải có thứ tự hiển thị ưu tiên */
+#modal-shop .app-card, #modal-help .app-card {
+    z-index: 10000; 
+    position: relative;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+    animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+/* Giữ nguyên thiết kế số dư nhưng bỏ bàn tay trỏ vào */
 .sweetie-balance {
     background: white;
     color: var(--pink-dark);
@@ -92,7 +114,7 @@
     align-items: center;
     gap: 5px;
     border: 1px solid var(--pink-main);
-    cursor: default; /* Đã đổi từ pointer sang default */
+    cursor: default; /* Không hiện bàn tay */
     margin-bottom: 10px;
 }
 
@@ -110,23 +132,9 @@
 
 .shop-item b { color: #d63384; }
 
-        /* Đảm bảo nội dung bên trong Modal luôn nổi bật */
-#modal-help .app-card, #modal-shop .app-card {
-    z-index: 3100; /* Cao hơn cả lớp phủ mờ */
-    position: relative;
-    animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-}
-
 @keyframes popIn {
     from { transform: scale(0.8); opacity: 0; }
     to { transform: scale(1); opacity: 1; }
-}
-
-/* Fix lỗi nền mờ phủ lên nội dung */
-#modal-shop, #modal-help {
-    display: flex !important; /* Luôn dùng flex để căn giữa */
-    align-items: center;
-    justify-content: center;
 }
 
 /* Khi ẩn thì mới dùng display none */
@@ -167,10 +175,13 @@
 
 <!-- MÀN HÌNH 2: PHÒNG CHỜ -->
 <div id="screen-lobby" class="app-card hidden">
-    <!-- THÊM: Hiển thị kẹo -->
-    <div class="sweetie-balance" style="margin-bottom: 15px; cursor: default;">
-    🍬 <span class="sweetie-val">0</span> Kẹo ngọt
-</div>
+    <!-- Nút cửa hàng mới ở góc phải -->
+    <div class="btn-shop-lobby" onclick="toggleShop(true)">🍭 Cửa hàng</div>
+
+    <!-- Hiển thị kẹo - Đã bỏ onclick -->
+    <div class="sweetie-balance" style="margin-bottom: 15px;">
+        🍬 <span class="sweetie-val">0</span> Kẹo ngọt
+    </div>
     
     <h3 id="lobby-info" style="color: var(--pink-dark);">Phòng Chờ</h3>
     <ul id="player-list" style="list-style:none; padding:0;"></ul>
