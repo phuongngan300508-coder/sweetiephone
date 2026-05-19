@@ -55,6 +55,11 @@
 <div id="progress-counter" class="hidden" style="position: fixed; top: 10px; right: 10px; background: var(--pink-dark); color: white; padding: 5px 12px; border-radius: 20px; font-weight: bold; z-index: 1000; box-shadow: 0 4px 10px rgba(0,0,0,0.1);">
     0/0
 </div>
+
+    <!-- Hiển thị ID Phòng có thể sao chép ở góc trên bên trái -->
+<div id="room-display" class="hidden" onclick="copyRoomId()" style="position: fixed; top: 10px; left: 10px; background: var(--glass); backdrop-filter: blur(10px); color: var(--pink-dark); padding: 5px 12px; border-radius: 20px; font-weight: bold; z-index: 1000; border: 1px solid white; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.05);">
+    🆔 <span id="display-id">---</span> 📋
+</div>
     
     <!-- MÀN HÌNH 1: ĐĂNG NHẬP -->
     <div id="screen-join" class="app-card">
@@ -204,6 +209,10 @@ canvas.addEventListener('touchmove', (e) => { e.preventDefault(); draw(e); });
             checkIfHost();
             listenRoom();
             showScreen('screen-lobby');
+
+            // Thêm đoạn này ngay bên dưới:
+document.getElementById('room-display').classList.remove('hidden');
+document.getElementById('display-id').innerText = currentRoom;
             
             // Lưu vào LocalStorage để nếu họ F5 trang, mình có thể tự điền lại tên (tiện ích thêm)
             localStorage.setItem('sweetie_name', name);
@@ -516,6 +525,24 @@ window.addEventListener('load', () => {
     if (savedName) document.getElementById('input-name').value = savedName;
     if (savedRoom) document.getElementById('input-room').value = savedRoom;
 });
+
+        window.copyRoomId = function() {
+    const roomId = document.getElementById('display-id').innerText;
+    if (!roomId || roomId === "---") return;
+    
+    navigator.clipboard.writeText(roomId).then(() => {
+        alert("Đã sao chép mã phòng: " + roomId + " ✨");
+    }).catch(err => {
+        // Fallback cho các trình duyệt cũ hơn
+        const el = document.createElement('textarea');
+        el.value = roomId;
+        document.body.appendChild(el);
+        el.select();
+        document.execCommand('copy');
+        document.body.removeChild(el);
+        alert("Đã sao chép mã phòng! 🎀");
+    });
+};
     </script>
 </body>
 </html>
