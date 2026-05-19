@@ -425,7 +425,7 @@
         <div style="background: #FFDEE9; padding: 12px; border-radius: 20px; border: 1px solid white; text-align: center;">
             <p style="margin: 0; font-size: 0.8rem; color: #D63384; font-weight: bold;">
                 🍬 Mỗi lượt Vote nhận ngay +2 kẹo!<br>
-                🎁 Xong ván chơi nhận ngay +5 kẹo!
+                🎁 Xong ván chơi nhận ngay +10 kẹo!
             </p>
         </div>
 
@@ -829,9 +829,9 @@ let currentStepIndex = 1;
 function renderShowcase(data) {
     // --- LOGIC CỘNG KẸO MỚI ---
     if (!rewardClaimed) {
-        updateCandyUI(5); // Cộng 5 kẹo
+        updateCandyUI(10); // Cộng 5 kẹo
         rewardClaimed = true; // Đánh dấu đã nhận thưởng
-        alert("Chúc mừng! Bạn nhận được 5 kẹo ngọt vì đã hoàn thành ván chơi! 🍬✨");
+        alert("Chúc mừng! Bạn nhận được 10 kẹo ngọt vì đã hoàn thành ván chơi! 🍬✨");
     }
     // --------------------------
 
