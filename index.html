@@ -80,7 +80,7 @@
     margin-bottom: 8px;
 }
 
-        /* Badge hiển thị số dư kẹo */
+/* Tìm đoạn này trong CSS của bạn và sửa cursor thành default */
 .sweetie-balance {
     background: white;
     color: var(--pink-dark);
@@ -92,7 +92,7 @@
     align-items: center;
     gap: 5px;
     border: 1px solid var(--pink-main);
-    cursor: pointer;
+    cursor: default; /* Đã đổi từ pointer sang default */
     margin-bottom: 10px;
 }
 
@@ -168,9 +168,9 @@
 <!-- MÀN HÌNH 2: PHÒNG CHỜ -->
 <div id="screen-lobby" class="app-card hidden">
     <!-- THÊM: Hiển thị kẹo -->
-    <div class="sweetie-balance" onclick="toggleShop(true)" style="margin-bottom: 15px;">
-        🍬 <span class="sweetie-val">0</span> Kẹo ngọt
-    </div>
+    <div class="sweetie-balance" style="margin-bottom: 15px; cursor: default;">
+    🍬 <span class="sweetie-val">0</span> Kẹo ngọt
+</div>
     
     <h3 id="lobby-info" style="color: var(--pink-dark);">Phòng Chờ</h3>
     <ul id="player-list" style="list-style:none; padding:0;"></ul>
@@ -201,9 +201,9 @@
     <h2 style="color: var(--pink-dark);">Triển lãm tác phẩm 🎨</h2>
     
     <!-- THÊM: Hiển thị kẹo -->
-    <div class="sweetie-balance" onclick="toggleShop(true)" style="margin-bottom: 10px;">
-        🍬 <span class="sweetie-val">0</span> Kẹo ngọt
-    </div>
+    <div class="sweetie-balance" style="margin-bottom: 10px; cursor: default;">
+    🍬 <span class="sweetie-val">0</span> Kẹo ngọt
+</div>
 
     <div id="showcase-content" style="max-height: 60vh; overflow-y: auto; margin-bottom: 10px;"></div>
     
