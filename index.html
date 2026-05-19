@@ -61,6 +61,24 @@
         border-radius: 10px; color: var(--pink-dark);
         list-style: none;
     }
+
+        #modal-help {
+    animation: fadeIn 0.3s ease-out;
+}
+/* Đảm bảo nội dung hướng dẫn có thể cuộn nếu màn hình nhỏ */
+#modal-help .app-card {
+    box-shadow: 0 20px 50px rgba(0,0,0,0.1);
+}
+
+        #modal-help h4 {
+    font-size: 1rem;
+}
+#modal-help b {
+    color: var(--pink-dark);
+}
+#modal-help ul li {
+    margin-bottom: 8px;
+}
 </style>
 </head>
 <body>
@@ -72,6 +90,11 @@
     <!-- Hiển thị ID Phòng có thể sao chép ở góc trên bên trái -->
 <div id="room-display" class="hidden" onclick="copyRoomId()" style="position: fixed; top: 10px; left: 10px; background: var(--glass); backdrop-filter: blur(10px); color: var(--pink-dark); padding: 5px 12px; border-radius: 20px; font-weight: bold; z-index: 1000; border: 1px solid white; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.05);">
     🆔 <span id="display-id">---</span> 📋
+</div>
+
+    <!-- Nút hỗ trợ hình tròn nổi ở góc dưới -->
+<div id="btn-help" onclick="toggleHelp(true)" style="position: fixed; bottom: 20px; right: 20px; background: white; color: var(--pink-dark); width: 45px; height: 45px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; cursor: pointer; z-index: 1000; box-shadow: 0 4px 15px rgba(255, 133, 162, 0.3); border: 1px solid var(--pink-main);">
+    ❓
 </div>
     
     <!-- MÀN HÌNH 1: ĐĂNG NHẬP -->
@@ -118,7 +141,41 @@
     <button id="btn-restart" class="hidden" onclick="restartGame()">Chơi ván mới 🔄</button>
     <p id="wait-restart-msg" style="font-size: 0.8rem; color: #888;">Đợi chủ phòng bắt đầu ván mới...</p>
 </div>
-    
+
+    <!-- Popup hướng dẫn chơi chia theo số lượng người -->
+<div id="modal-help" class="hidden" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,193,204,0.2); backdrop-filter: blur(8px); z-index: 2000; display: flex; align-items: center; justify-content: center;">
+    <div class="app-card" style="max-height: 85vh; overflow-y: auto; position: relative; width: 90%; max-width: 450px;">
+        <div onclick="toggleHelp(false)" style="position: absolute; top: 15px; right: 20px; cursor: pointer; font-size: 1.2rem; color: var(--pink-dark);">✕</div>
+        
+        <h3 style="color: var(--pink-dark); margin-top: 10px;">Hướng dẫn chơi 🎀</h3>
+
+        <!-- Kiểu 2 người -->
+        <div style="text-align: left; background: rgba(255,255,255,0.5); padding: 15px; border-radius: 20px; margin-bottom: 15px; border: 1px dashed var(--pink-main);">
+            <h4 style="margin: 0 0 10px 0; color: #d63384; display: flex; align-items: center;">
+                <span style="font-size: 1.5rem; margin-right: 10px;">👥</span> Chế độ 2 người
+            </h4>
+            <ul style="padding-left: 20px; font-size: 0.85rem; color: #555; margin: 0;">
+                <li><b>Vòng 1:</b> Cả hai cùng ghi câu đố cho nhau.</li>
+                <li><b>Vòng 2:</b> Bạn sẽ vẽ lại câu đố mà đối phương vừa viết.</li>
+                <li><b>Kết thúc:</b> Hai bạn xem lại thành quả vẽ của nhau có khớp với ý đồ ban đầu không.</li>
+            </ul>
+        </div>
+
+        <!-- Kiểu 3 người trở lên -->
+        <div style="text-align: left; background: rgba(255,255,255,0.5); padding: 15px; border-radius: 20px; border: 1px solid var(--pink-main);">
+            <h4 style="margin: 0 0 10px 0; color: #d63384; display: flex; align-items: center;">
+                <span style="font-size: 1.5rem; margin-right: 10px;">💃🕺</span> Chế độ 3+ người
+            </h4>
+            <ul style="padding-left: 20px; font-size: 0.85rem; color: #555; margin: 0;">
+                <li><b>Vòng tròn:</b> Bài của bạn sẽ được chuyển cho người bên cạnh theo hình thức "Tiếp sức".</li>
+                <li><b>Chuỗi biến hóa:</b> Viết ➔ Vẽ ➔ Đoán ➔ Vẽ... nội dung sẽ bị thay đổi qua từng người.</li>
+                <li><b>Triển lãm:</b> Xem lại cả một "chuỗi thảm họa" để thấy câu ban đầu đã bị biến thành hình vẽ kỳ lạ thế nào!</li>
+            </ul>
+        </div>
+
+        <button onclick="toggleHelp(false)" style="margin-top: 20px;">Đã rõ, chơi thôi! ✨</button>
+    </div>
+</div>
     <!-- FIREBASE SDK (Dùng bản CDN để chạy ngay không cần cài đặt) -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-app.js";
@@ -568,6 +625,15 @@ window.addEventListener('load', () => {
         document.body.removeChild(el);
         alert("Đã sao chép mã phòng! 🎀");
     });
+};
+
+        window.toggleHelp = function(show) {
+    const modal = document.getElementById('modal-help');
+    if (show) {
+        modal.classList.remove('hidden');
+    } else {
+        modal.classList.add('hidden');
+    }
 };
     </script>
 </body>
