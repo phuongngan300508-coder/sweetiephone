@@ -109,6 +109,30 @@
 }
 
 .shop-item b { color: #d63384; }
+
+        /* Đảm bảo nội dung bên trong Modal luôn nổi bật */
+#modal-help .app-card, #modal-shop .app-card {
+    z-index: 3100; /* Cao hơn cả lớp phủ mờ */
+    position: relative;
+    animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes popIn {
+    from { transform: scale(0.8); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+}
+
+/* Fix lỗi nền mờ phủ lên nội dung */
+#modal-shop, #modal-help {
+    display: flex !important; /* Luôn dùng flex để căn giữa */
+    align-items: center;
+    justify-content: center;
+}
+
+/* Khi ẩn thì mới dùng display none */
+#modal-shop.hidden, #modal-help.hidden {
+    display: none !important;
+}
 </style>
 </head>
 <body>
