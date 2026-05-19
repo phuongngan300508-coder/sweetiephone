@@ -390,41 +390,49 @@
     <p id="wait-restart-msg" style="font-size: 0.8rem; color: #888;">Đợi chủ phòng bắt đầu ván mới...</p>
 </div>
 
-    <!-- Popup hướng dẫn chơi chia theo số lượng người -->
+    <!-- Popup hướng dẫn chơi phân loại theo số người -->
 <div id="modal-help" class="hidden" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,193,204,0.2); backdrop-filter: blur(8px); z-index: 2000; display: flex; align-items: center; justify-content: center;">
     <div class="app-card" style="max-height: 85vh; overflow-y: auto; position: relative; width: 90%; max-width: 450px;">
         <div onclick="toggleHelp(false)" style="position: absolute; top: 15px; right: 20px; cursor: pointer; font-size: 1.2rem; color: var(--pink-dark);">✕</div>
         
         <h3 style="color: var(--pink-dark); margin-top: 10px;">Hướng dẫn chơi 🎀</h3>
 
-        <!-- Kiểu 2 người -->
+        <!-- Chế độ 2 người -->
         <div style="text-align: left; background: rgba(255,255,255,0.5); padding: 15px; border-radius: 20px; margin-bottom: 15px; border: 1px dashed var(--pink-main);">
             <h4 style="margin: 0 0 10px 0; color: #d63384; display: flex; align-items: center;">
                 <span style="font-size: 1.5rem; margin-right: 10px;">👥</span> Chế độ 2 người
             </h4>
             <ul style="padding-left: 20px; font-size: 0.85rem; color: #555; margin: 0;">
-                <li><b>Vòng 1:</b> Cả hai cùng ghi câu đố cho nhau.</li>
-                <li><b>Vòng 2:</b> Bạn sẽ vẽ lại câu đố mà đối phương vừa viết.</li>
-                <li><b>Kết thúc:</b> Hai bạn xem lại thành quả vẽ của nhau có khớp với ý đồ ban đầu không.</li>
+                <li><b>Vòng 1:</b> Cả hai cùng ghi câu đố/mô tả cho nhau.</li>
+                <li><b>Vòng 2:</b> Bạn vẽ lại nội dung đối phương vừa viết.</li>
+                <li><b>Kết thúc:</b> Xem lại hình vẽ của nhau và <b>💖 Vote</b> nếu thấy bạn mình vẽ quá đỉnh!</li>
             </ul>
         </div>
 
-        <!-- Kiểu 3 người trở lên -->
-        <div style="text-align: left; background: rgba(255,255,255,0.5); padding: 15px; border-radius: 20px; border: 1px solid var(--pink-main);">
+        <!-- Chế độ 3 người trở lên -->
+        <div style="text-align: left; background: rgba(255,255,255,0.5); padding: 15px; border-radius: 20px; margin-bottom: 15px; border: 1px solid var(--pink-main);">
             <h4 style="margin: 0 0 10px 0; color: #d63384; display: flex; align-items: center;">
                 <span style="font-size: 1.5rem; margin-right: 10px;">💃🕺</span> Chế độ 3+ người
             </h4>
             <ul style="padding-left: 20px; font-size: 0.85rem; color: #555; margin: 0;">
-                <li><b>Vòng tròn:</b> Bài của bạn sẽ được chuyển cho người bên cạnh theo hình thức "Tiếp sức".</li>
-                <li><b>Chuỗi biến hóa:</b> Viết ➔ Vẽ ➔ Đoán ➔ Vẽ... nội dung sẽ bị thay đổi qua từng người.</li>
-                <li><b>Triển lãm:</b> Xem lại cả một "chuỗi thảm họa" để thấy câu ban đầu đã bị biến thành hình vẽ kỳ lạ thế nào!</li>
+                <li><b>Vòng tròn:</b> Bài của bạn sẽ được chuyển tiếp sức cho người bên cạnh.</li>
+                <li><b>Biến hóa:</b> Viết ➔ Vẽ ➔ Đoán ➔ Vẽ... nội dung sẽ bị "tam sao thất bản" cực hài hước.</li>
+                <li><b>Triển lãm:</b> Theo dõi chuỗi biến hình và <b>💖 Vote</b> cho tác phẩm buồn cười nhất.</li>
             </ul>
         </div>
 
-        <button onclick="toggleHelp(false)" style="margin-top: 20px;">Đã rõ, chơi thôi! ✨</button>
+        <!-- Lưu ý chung về Kẹo -->
+        <div style="background: #FFDEE9; padding: 12px; border-radius: 20px; border: 1px solid white; text-align: center;">
+            <p style="margin: 0; font-size: 0.8rem; color: #D63384; font-weight: bold;">
+                🍬 Mỗi lượt Vote nhận ngay +2 kẹo!<br>
+                🎁 Xong ván chơi nhận ngay +5 kẹo!
+            </p>
+        </div>
+
+        <button onclick="toggleHelp(false)" style="margin-top: 20px; background: var(--pink-dark);">Đã rõ, chơi thôi! ✨</button>
     </div>
 </div>
-
+    
     <!-- Popup Cửa hàng Kẹo Ngọt -->
 <div id="modal-shop" class="hidden" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255, 193, 204, 0.4); backdrop-filter: blur(10px); z-index: 3000; display: flex; align-items: center; justify-content: center;">
     <div class="app-card">
