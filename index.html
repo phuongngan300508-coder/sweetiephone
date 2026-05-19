@@ -55,7 +55,7 @@
         background: white; border: 2px solid var(--pink-main);
         border-radius: 15px; touch-action: none; width: 100%; height: 300px;
     }
-    .hidden { display: none !important; }
+    
     #player-list li {
         background: white; padding: 8px; margin: 5px 0;
         border-radius: 10px; color: var(--pink-dark);
@@ -80,18 +80,28 @@
     z-index: 20;
 }
 
-/* Ép các Modal/Popup luôn nằm trên cùng tuyệt đối của mọi màn hình */
+/* Thiết lập mặc định cho Modal (ẩn) */
 #modal-shop, #modal-help {
     position: fixed;
     top: 0; left: 0;
     width: 100%; height: 100%;
-    background: rgba(0, 0, 0, 0.4); /* Làm nền tối mờ để card trắng nổi bật hẳn lên */
+    background: rgba(0, 0, 0, 0.4); 
     backdrop-filter: blur(10px);
     -webkit-backdrop-filter: blur(10px);
-    display: flex !important;
+    display: none; /* Mặc định là ẩn */
     align-items: center;
     justify-content: center;
-    z-index: 9999; /* Con số cao nhất để đè lên mọi thứ */
+    z-index: 9999;
+}
+
+/* Khi KHÔNG có class hidden thì mới hiện flex */
+#modal-shop:not(.hidden), #modal-help:not(.hidden) {
+    display: flex;
+}
+
+/* Class hidden để ẩn tuyệt đối */
+.hidden {
+    display: none !important;
 }
 
 /* Ép Card nội dung bên trong Popup phải có thứ tự hiển thị ưu tiên */
@@ -258,8 +268,8 @@
 </div>
 
     <!-- Popup Cửa hàng -->
-<div id="modal-shop" class="hidden" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,193,204,0.3); backdrop-filter: blur(10px); z-index: 3000; display: flex; align-items: center; justify-content: center;">
-    <div class="app-card" style="width: 90%; max-width: 400px;">
+<div id="modal-shop" class="hidden">
+    <div class="app-card" style="width: 90%; max-width: 400px; position: relative;">
         <div onclick="toggleShop(false)" style="position: absolute; top: 15px; right: 20px; cursor: pointer; font-size: 1.2rem; color: var(--pink-dark);">✕</div>
         
         <h3 style="color: var(--pink-dark);">🍭 Tiệm Kẹo Ngọt</h3>
