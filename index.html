@@ -110,10 +110,26 @@
 
 .shop-item b { color: #d63384; }
 
-        /* Đảm bảo nội dung bên trong Modal luôn nổi bật */
-#modal-help .app-card, #modal-shop .app-card {
-    z-index: 3100; /* Cao hơn cả lớp phủ mờ */
+        /* CSS MỚI: Ép các Popup luôn nằm trên cùng tuyệt đối */
+#modal-shop, #modal-help {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background: rgba(0, 0, 0, 0.4); /* Làm nền tối lại một chút để nổi bật popup */
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999; /* Con số này phải cực cao để đè lên mọi thứ khác */
+}
+
+/* Ép cái Card bên trong Popup phải có z-index cao hơn nữa */
+#modal-shop .app-card, #modal-help .app-card {
+    z-index: 10000; 
     position: relative;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+    transform: scale(1);
     animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
@@ -122,17 +138,8 @@
     to { transform: scale(1); opacity: 1; }
 }
 
-/* Fix lỗi nền mờ phủ lên nội dung */
-#modal-shop, #modal-help {
-    display: flex !important; /* Luôn dùng flex để căn giữa */
-    align-items: center;
-    justify-content: center;
-}
-
-/* Khi ẩn thì mới dùng display none */
-#modal-shop.hidden, #modal-help.hidden {
-    display: none !important;
-}
+/* Đảm bảo khi có class hidden thì nó biến mất hoàn toàn */
+.hidden { display: none !important; }
 </style>
 </head>
 <body>
