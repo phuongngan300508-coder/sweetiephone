@@ -353,13 +353,17 @@
 </div>
 
     <!-- MÀN HÌNH 2: PHÒNG CHỜ -->
-    <div id="screen-lobby" class="app-card hidden">
-        <div class="candy-balance">🍬 <span class="candy-value">0</span></div>
-        <h3 id="lobby-info" style="color: var(--pink-dark);">Phòng Chờ</h3>
-        <ul id="player-list" style="list-style:none; padding:0;"></ul>
-        <p style="font-size: 0.8rem; color: #888;">Đợi chủ phòng bắt đầu nhé...</p>
-        <button id="btn-start" onclick="startGame()">BẮT ĐẦU GAME ❤️</button>
-    </div>
+<div id="screen-lobby" class="app-card hidden">
+    <div class="candy-balance">🍬 <span class="candy-value">0</span></div>
+    <h3 id="lobby-info" style="color: var(--pink-dark);">Phòng Chờ</h3>
+    <ul id="player-list" style="list-style:none; padding:0;"></ul>
+    <p style="font-size: 0.8rem; color: #888;">Đợi chủ phòng bắt đầu nhé...</p>
+    
+    <button id="btn-start" onclick="startGame()">BẮT ĐẦU GAME ❤️</button>
+    
+    <!-- NÚT THOÁT PHÒNG MỚI -->
+    <button onclick="leaveRoom()" style="background: #eee; color: #888; margin-top: 5px;">Thoát phòng ↩️</button>
+</div>
 
     <!-- MÀN HÌNH 3: CHƠI GAME -->
     <div id="screen-game" class="app-card hidden">
@@ -1124,6 +1128,42 @@ function listenForVotes() {
         }
     });
 }
+
+        // Hàm thoát phòng
+window.leaveRoom = async function() {
+    if (!currentRoom || !myId) return;
+
+    if (confirm("Bạn có chắc muốn thoát phòng này không? ✨")) {
+        showLoading(true);
+        
+        try {
+            // 1. Xóa dữ liệu của mình trong danh sách người chơi trên Firebase
+            const { remove } = await import("https://www.gstatic.com/firebasejs/10.11.0/firebase-database.js");
+            await remove(ref(db, `rooms/${currentRoom}/players/${myId}`));
+
+            // 2. Nếu mình là Host, hãy xóa luôn node host để người sau có thể làm Host (hoặc xóa phòng)
+            if (isHost) {
+                await remove(ref(db, `rooms/${currentRoom}/host`));
+            }
+
+            // 3. Reset các biến trạng thái và quay về màn hình Đăng nhập
+            currentRoom = "";
+            isHost = false;
+            document.getElementById('room-display').classList.add('hidden');
+            showScreen('screen-join');
+            
+            // Xóa mã phòng đã lưu để lần sau không tự nhập lại phòng cũ
+            localStorage.removeItem('sweetie_room');
+            document.getElementById('input-room').value = "";
+            
+        } catch (error) {
+            console.error(error);
+            alert("Có lỗi khi thoát phòng rồi! 😰");
+        }
+        
+        showLoading(false);
+    }
+};
     </script>
 </body>
 </html>
