@@ -260,24 +260,31 @@ let myChainOwnerId = ""; // Chuỗi mà bạn đang thực hiện (ví dụ: đa
     }
 }
 
-        window.submitTurn = async function() {
-    const isOdd = !document.getElementById('area-write').classList.contains('hidden');
-    let value = isOdd ? document.getElementById('input-phrase').value : canvas.toDataURL();
-    if(!value) return alert("Đừng để trống!");
+       window.submitTurn = async function() {
+    const isWriteMode = !document.getElementById('area-write').classList.contains('hidden');
+    let value = isWriteMode ? document.getElementById('input-phrase').value : canvas.toDataURL();
+    
+    if(!value || value.trim() === "") return alert("Đừng để trống mà! ❤️");
+
+    // Lấy thông tin round hiện tại từ DB
+    const roomSnap = await get(ref(db, `rooms/${currentRoom}`));
+    const roomData = roomSnap.val();
+    const round = roomData.currentRound;
 
     // Lưu vào chuỗi của người chủ (myChainOwnerId)
-    await set(ref(db, `rooms/${currentRoom}/chains/${myChainOwnerId}/round_${data.currentRound}`), {
+    await set(ref(db, `rooms/${currentRoom}/chains/${myChainOwnerId}/round_${round}`), {
         content: value,
         authorName: document.getElementById('input-name').value
     });
 
     // Đánh dấu tôi đã xong vòng này
-    await set(ref(db, `rooms/${currentRoom}/submitted/${data.currentRound}/${myId}`), true);
+    await set(ref(db, `rooms/${currentRoom}/submitted/${round}/${myId}`), true);
 
-    // Kiểm tra nếu tất cả đã xong (Chỉ Host kiểm tra)
     if (isHost) {
-        checkAllSubmitted(data.currentRound);
+        checkAllSubmitted(round);
     }
+    
+    alert("Đã gửi! Chờ bạn bè tí nhé... ✨");
 };
 
 async function checkAllSubmitted(round) {
@@ -301,6 +308,44 @@ async function checkAllSubmitted(round) {
             document.querySelectorAll('.app-card').forEach(s => s.classList.add('hidden'));
             document.getElementById(id).classList.remove('hidden');
         }
+
+        function showWriteArea(text) {
+    document.getElementById('prompt-area').innerText = text;
+    document.getElementById('area-write').classList.remove('hidden');
+    document.getElementById('area-draw').classList.add('hidden');
+    document.getElementById('input-phrase').value = ""; // Xóa chữ cũ
+}
+
+function showDrawArea(text) {
+    document.getElementById('prompt-area').innerText = text;
+    document.getElementById('area-write').classList.add('hidden');
+    document.getElementById('area-draw').classList.remove('hidden');
+    clearCanvas(); // Xóa hình cũ
+}
+
+        function renderShowcase(data) {
+    showScreen('screen-showcase');
+    const container = document.getElementById('showcase-content');
+    container.innerHTML = "";
+
+    for (let ownerId in data.chains) {
+        const ownerName = data.players[ownerId]?.name || "Ẩn danh";
+        let chainHtml = `<div style="border: 2px solid var(--pink-main); margin: 15px 0; padding: 15px; border-radius: 20px; background: white;">`;
+        chainHtml += `<h3 style="color: var(--pink-dark);">Chuỗi của ${ownerName}</h3>`;
+
+        const rounds = data.chains[ownerId];
+        for (let r in rounds) {
+            const step = rounds[r];
+            if (step.content.startsWith('data:image')) {
+                chainHtml += `<div style="margin:10px 0;"><small>${step.authorName} vẽ:</small><br><img src="${step.content}" style="width:100%; border-radius:10px; border:1px solid #eee;"></div>`;
+            } else {
+                chainHtml += `<div style="margin:10px 0;"><small>${step.authorName} viết:</small><p style="font-weight:bold; color:#d63384;">"${step.content}"</p></div>`;
+            }
+        }
+        chainHtml += `</div>`;
+        container.innerHTML += chainHtml;
+    }
+}
     </script>
 </body>
 </html>
