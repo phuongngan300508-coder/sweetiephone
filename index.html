@@ -221,6 +221,25 @@
         <button onclick="toggleHelp(false)" style="margin-top: 20px;">Đã rõ, chơi thôi! ✨</button>
     </div>
 </div>
+
+    <!-- Popup Cửa hàng -->
+<div id="modal-shop" class="hidden" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,193,204,0.3); backdrop-filter: blur(10px); z-index: 3000; display: flex; align-items: center; justify-content: center;">
+    <div class="app-card" style="width: 90%; max-width: 400px;">
+        <div onclick="toggleShop(false)" style="position: absolute; top: 15px; right: 20px; cursor: pointer; font-size: 1.2rem; color: var(--pink-dark);">✕</div>
+        
+        <h3 style="color: var(--pink-dark);">🍭 Tiệm Kẹo Ngọt</h3>
+        <p style="font-size: 0.8rem; color: #888;">Số dư của bạn: <span id="shop-balance" style="font-weight: bold; color: var(--pink-dark);">0</span> 🍬</p>
+        
+        <div style="margin: 20px 0; text-align: left; max-height: 40vh; overflow-y: auto;">
+            <div class="shop-item"><span>Đổi 1.000đ</span> <button onclick="buyItem(1000, 1000)" style="width: auto; margin:0; padding: 8px 15px; font-size: 0.8rem;">1.000 🍬</button></div>
+            <div class="shop-item"><span>Đổi 5.000đ</span> <button onclick="buyItem(5000, 5000)" style="width: auto; margin:0; padding: 8px 15px; font-size: 0.8rem;">5.000 🍬</button></div>
+            <div class="shop-item"><span>Đổi 10.000đ</span> <button onclick="buyItem(10000, 10000)" style="width: auto; margin:0; padding: 8px 15px; font-size: 0.8rem;">10.000 🍬</button></div>
+            <div class="shop-item"><span>Đổi 20.000đ</span> <button onclick="buyItem(20000, 20000)" style="width: auto; margin:0; padding: 8px 15px; font-size: 0.8rem;">20.000 🍬</button></div>
+        </div>
+        
+        <button onclick="toggleShop(false)" style="background: #eee; color: #666; margin-top: 10px;">Để sau ✨</button>
+    </div>
+</div>
     <!-- FIREBASE SDK (Dùng bản CDN để chạy ngay không cần cài đặt) -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-app.js";
@@ -695,15 +714,26 @@ window.toggleHelp = function(show) {
 // Hàm cập nhật hiển thị số dư trên toàn bộ giao diện
 function updateSweetieUI(amount) {
     mySweeties = amount;
+    
+    // Cập nhật các badge kẹo (dùng class nên sẽ không bị lỗi nếu không tìm thấy)
     const elements = document.querySelectorAll('.sweetie-val');
     elements.forEach(el => el.innerText = mySweeties);
-    document.getElementById('shop-balance').innerText = mySweeties;
+    
+    // Cập nhật số dư trong cửa hàng (Kiểm tra ID tránh lỗi null)
+    const shopBalanceEl = document.getElementById('shop-balance');
+    if (shopBalanceEl) {
+        shopBalanceEl.innerText = mySweeties;
+    }
 }
-
-// Lấy số dư từ Firebase khi đăng nhập
+        
 async function fetchSweeties() {
-    const snap = await get(ref(db, `users/${myId}/sweeties`));
-    updateSweetieUI(snap.val() || 0);
+    if (!myId) return;
+    const userRef = ref(db, `users/${myId}/sweeties`);
+    // Sử dụng onValue để lắng nghe sự thay đổi thời gian thực
+    onValue(userRef, (snapshot) => {
+        const val = snapshot.val() || 0;
+        updateSweetieUI(val);
+    });
 }
 
 // Hàm cộng Kẹo khi hoàn thành màn chơi (Chỉ Host gọi 1 lần khi kết thúc)
