@@ -373,26 +373,38 @@ document.getElementById('display-id').innerText = currentRoom;
     
     if(!value || value.trim() === "") return alert("Đừng để trống mà! ❤️");
 
-    // Lấy thông tin round hiện tại từ DB
+    // 1. Lấy dữ liệu phòng hiện tại để kiểm tra tiến độ
     const roomSnap = await get(ref(db, `rooms/${currentRoom}`));
     const roomData = roomSnap.val();
     const round = roomData.currentRound;
+    const totalPlayers = Object.keys(roomData.players).length;
+    
+    // Đếm số người đã nộp (bao gồm cả lượt hiện tại của mình)
+    const currentSubmittedCount = roomData.submitted && roomData.submitted[round] 
+        ? Object.keys(roomData.submitted[round]).length 
+        : 0;
 
-    // Lưu vào chuỗi của người chủ (myChainOwnerId)
+    // 2. Lưu bài nộp vào chuỗi (chains)
     await set(ref(db, `rooms/${currentRoom}/chains/${myChainOwnerId}/round_${round}`), {
         content: value,
         authorName: document.getElementById('input-name').value,
-        authorId: myId // Bổ sung authorId để hỗ trợ logic hiển thị tin nhắn trái/phải
+        authorId: myId
     });
 
-    // Đánh dấu tôi đã xong vòng này
+    // 3. Đánh dấu trạng thái đã nộp
     await set(ref(db, `rooms/${currentRoom}/submitted/${round}/${myId}`), true);
+
+    // 4. Kiểm tra để hiển thị thông báo phù hợp
+    // Nếu số người đã nộp trước đó cộng thêm mình là đủ sĩ số phòng
+    if (currentSubmittedCount + 1 >= totalPlayers) {
+        alert("Tuyệt vời! Tiến sang bước tiếp theo thôi... 🚀");
+    } else {
+        alert("Đã gửi! Chờ bạn bè tí nhé... ✨");
+    }
 
     if (isHost) {
         checkAllSubmitted(round);
     }
-    
-    alert("Đã gửi! Chờ bạn bè tí nhé... ✨");
 };
 
 async function checkAllSubmitted(round) {
