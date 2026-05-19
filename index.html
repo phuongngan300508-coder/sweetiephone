@@ -293,6 +293,32 @@
     margin-top: 40px; 
     background: rgba(255, 240, 245, 0.98); /* Tăng độ đậm nền một chút cho ngọt */
 }
+
+        .btn-vote {
+    background: linear-gradient(135deg, #FFDEE9 0%, #FFB7C5 100%);
+    color: #D63384;
+    border: 2px solid white;
+    padding: 10px 20px;
+    border-radius: 20px;
+    font-weight: bold;
+    cursor: pointer;
+    box-shadow: 0 4px 10px rgba(255, 133, 162, 0.2);
+    transition: 0.3s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: auto !important;
+    margin: 10px auto !important;
+}
+.btn-vote:active { transform: scale(0.9); }
+.btn-vote:disabled {
+    background: #eee;
+    color: #bbb;
+    border-color: #ddd;
+    cursor: not-allowed;
+    box-shadow: none;
+}
 </style>
 </head>
 <body>
@@ -544,6 +570,7 @@ canvas.addEventListener('touchmove', (e) => { e.preventDefault(); draw(e); });
         }).then(() => {
             checkIfHost();
             listenRoom();
+            listenForVotes();
             showScreen('screen-lobby');
 
             document.getElementById('room-display').classList.remove('hidden');
@@ -837,9 +864,24 @@ function renderShowcase(data) {
     }
     html += `</div>`;
 
-    // 3. Nút điều khiển (Chỉ Host mới thấy các nút điều hướng tiếp theo)
-    let controlsHtml = `<div style="margin-top: 25px; display: flex; flex-direction: column; gap: 10px;">`;
+    // 3. Nút điều khiển & Nút Vote
+    let controlsHtml = `<div style="margin-top: 20px; display: flex; flex-direction: column; gap: 10px; align-items: center;">`;
     
+    // NÚT VOTE: Hiển thị cho tất cả mọi người, trừ khi đang xem chính mình
+    if (currentOwnerId !== myId) {
+        // Kiểm tra xem đã vote cho người này ở vòng này chưa (dùng LocalStorage để giới hạn mỗi người 1 vote/người chơi)
+        const voteKey = `voted_${currentRoom}_${currentOwnerId}`;
+        const hasVoted = localStorage.getItem(voteKey);
+
+        controlsHtml += `
+            <button id="vote-btn-${currentOwnerId}" class="btn-vote" 
+                ${hasVoted ? 'disabled' : ''} 
+                onclick="castVote('${currentOwnerId}', '${currentOwnerName}')">
+                ${hasVoted ? '✅ Đã Vote' : '💖 Vote đúng nhất (+2🍬)'}
+            </button>
+        `;
+    }
+
     if (isHost) {
         const isLastStep = state.stepIndex >= totalStepsAvailable;
         const isLastPlayer = state.playerIndex >= players.length - 1;
@@ -847,10 +889,9 @@ function renderShowcase(data) {
         if (!isLastStep) {
             controlsHtml += `<button onclick="syncShowcase(${state.playerIndex}, ${state.stepIndex + 1})">Tiếp theo ➡️</button>`;
         } else if (!isLastPlayer) {
-            controlsHtml += `<button onclick="syncShowcase(${state.playerIndex + 1}, 1)" style="background: #4CAF50;">Sang người tiếp theo 👤</button>`;
+            controlsHtml += `<button onclick="syncShowcase(${state.playerIndex + 1}, 1)" style="background: #4CAF50; width: 100%;">Sang người tiếp theo 👤</button>`;
         } else {
-            // Đã xem hết tất cả mọi người
-            controlsHtml += `<button onclick="restartGame()" style="background: var(--pink-dark);">Chơi ván mới 🔄</button>`;
+            controlsHtml += `<button onclick="restartGame()" style="background: var(--pink-dark); width: 100%;">Chơi ván mới 🔄</button>`;
         }
     } else {
         controlsHtml += `<p style="font-size: 0.8rem; color: #888;">Đang xem triển lãm do chủ phòng điều khiển... 🎀</p>`;
@@ -1014,6 +1055,58 @@ window.openShop = function(show) {
     } else {
         shop.classList.add('hidden');
     }
+}
+
+        // Hàm gửi bình chọn
+window.castVote = function(targetId, targetName) {
+    const voteKey = `voted_${currentRoom}_${targetId}`;
+    if (localStorage.getItem(voteKey)) return;
+
+    // 1. Đánh dấu đã vote cục bộ để không bấm lại được
+    localStorage.setItem(voteKey, "true");
+    const btn = document.getElementById(`vote-btn-${targetId}`);
+    if (btn) {
+        btn.disabled = true;
+        btn.innerText = "✅ Đã Vote";
+    }
+
+    // 2. Gửi tín hiệu vote lên Firebase để người đó nhận được kẹo
+    // Chúng ta tạo một node tạm thời cho các lượt vote
+    const voteRef = ref(db, `rooms/${currentRoom}/votes/${targetId}/${myId}`);
+    set(voteRef, Date.now());
+    
+    alert(`Bạn đã vote cho ${targetName}! 💖`);
+}
+
+// Lắng nghe xem có ai vote cho mình không
+function listenForVotes() {
+    // Chỉ lắng nghe khi đã vào phòng
+    if (!currentRoom || !myId) return;
+
+    onValue(ref(db, `rooms/${currentRoom}/votes/${myId}`), (snapshot) => {
+        const votes = snapshot.val();
+        if (!votes) return;
+
+        const voteCount = Object.keys(votes).length;
+        // Lấy số lượng vote đã xử lý từ LocalStorage
+        const processedVotesKey = `processed_votes_${currentRoom}`;
+        const processedCount = parseInt(localStorage.getItem(processedVotesKey) || "0");
+
+        if (voteCount > processedCount) {
+            const newVotes = voteCount - processedCount;
+            const candyEarned = newVotes * 2;
+
+            // Cộng kẹo và lưu lịch sử
+            updateCandyUI(candyEarned);
+            saveToHistory(`Nhận ${candyEarned} kẹo từ bình chọn 💖`);
+            
+            // Cập nhật số lượng đã xử lý
+            localStorage.setItem(processedVotesKey, voteCount.toString());
+            
+            // Thông báo nhỏ xinh
+            alert(`✨ Bạn vừa được vote và nhận thêm ${candyEarned} kẹo ngọt!`);
+        }
+    });
 }
     </script>
 </body>
