@@ -242,6 +242,37 @@
     border: none;
     margin-top: 15px;
 }
+
+        /* Danh sách lịch sử nạp kẹo */
+#history-list {
+    margin-top: 15px;
+    max-height: 150px;
+    overflow-y: auto;
+    text-align: left;
+    padding: 5px;
+    border-radius: 15px;
+    background: rgba(255, 255, 255, 0.3);
+}
+.history-item {
+    background: white;
+    padding: 8px 12px;
+    margin-bottom: 6px;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-left: 4px solid #FF85A2;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+}
+.history-time {
+    color: #999;
+    font-size: 0.65rem;
+}
+.history-amount {
+    color: #4CAF50;
+    font-weight: bold;
+}
 </style>
 </head>
 <body>
@@ -382,6 +413,14 @@
             <p style="font-size: 0.8rem; color: #D63384; margin-top: 0;">Nạp thêm kẹo ngọt ✨</p>
             <input type="number" id="input-cheat-candy" placeholder="Nhập số kẹo...">
             <button onclick="addCandyFromInput()" style="background: #FF5D8F; margin-bottom: 0;">Nhận ngay 🍬</button>
+        </div>
+
+        <!-- PHẦN MỚI: Lịch sử nạp kẹo -->
+        <div style="margin-top: 15px;">
+            <p style="font-size: 0.75rem; color: #FF85A2; font-weight: bold; margin-bottom: 5px;">📜 Lịch sử nạp kẹo</p>
+            <div id="history-list">
+                <!-- Lịch sử sẽ hiện ở đây -->
+            </div>
         </div>
         
         <button onclick="openShop(false)" class="btn-close-shop">Để sau nha 🌸</button>
@@ -902,24 +941,68 @@ function updateCandyUI(amountChange) {
     if(shopValue) shopValue.innerText = newTotal;
 }
 
-// Mở/Đóng Shop
+// Cập nhật hàm nạp kẹo để lưu vào lịch sử
+window.addCandyFromInput = function() {
+    const val = parseInt(document.getElementById('input-cheat-candy').value);
+    if(isNaN(val) || val <= 0) return alert("Nhập số kẹo hợp lệ nhé!");
+    
+    // 1. Cập nhật số dư
+    updateCandyUI(val);
+    
+    // 2. Lưu vào lịch sử (LocalStorage)
+    saveToHistory(val);
+    
+    document.getElementById('input-cheat-candy').value = "";
+    alert(`Đã nạp thành công ${val} kẹo! ✨`);
+    
+    // 3. Cập nhật lại danh sách hiển thị
+    renderHistory();
+}
+
+// Hàm lưu lịch sử
+function saveToHistory(amount) {
+    let history = JSON.parse(localStorage.getItem('sweetie_candy_history') || '[]');
+    const newItem = {
+        amount: amount,
+        time: new Date().toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' })
+    };
+    history.unshift(newItem); // Thêm mới lên đầu
+    // Chỉ giữ lại 10 giao dịch gần nhất cho nhẹ máy
+    if(history.length > 10) history.pop(); 
+    localStorage.setItem('sweetie_candy_history', JSON.stringify(history));
+}
+
+// Hàm hiển thị lịch sử lên UI
+function renderHistory() {
+    const historyContainer = document.getElementById('history-list');
+    let history = JSON.parse(localStorage.getItem('sweetie_candy_history') || '[]');
+    
+    if(history.length === 0) {
+        historyContainer.innerHTML = `<p style="font-size: 0.7rem; color: #ccc; margin-top: 10px;">Chưa có giao dịch nào...</p>`;
+        return;
+    }
+
+    historyContainer.innerHTML = history.map(item => `
+        <div class="history-item">
+            <div>
+                <div style="font-weight: bold; color: #D63384;">+${item.amount.toLocaleString()} 🍬</div>
+                <div class="history-time">${item.time}</div>
+            </div>
+            <div style="font-size: 0.9rem;">✅</div>
+        </div>
+    `).join('');
+}
+
+// Mở/Đóng Shop (Cập nhật để khi mở shop là hiện lịch sử luôn)
 window.openShop = function(show) {
     const shop = document.getElementById('modal-shop');
     if(show) {
         shop.classList.remove('hidden');
-        updateCandyUI(0); // Chỉ để cập nhật số hiển thị
+        updateCandyUI(0); 
+        renderHistory(); // <--- Thêm dòng này
     } else {
         shop.classList.add('hidden');
     }
-}
-
-// Hàm nạp kẹo thủ công trong shop
-window.addCandyFromInput = function() {
-    const val = parseInt(document.getElementById('input-cheat-candy').value);
-    if(isNaN(val) || val <= 0) return alert("Nhập số kẹo hợp lệ nhé!");
-    updateCandyUI(val);
-    document.getElementById('input-cheat-candy').value = "";
-    alert(`Đã nạp thành công ${val} kẹo! ✨`);
 }
     </script>
 </body>
