@@ -86,10 +86,14 @@
         <button onclick="submitTurn()">GỬI ĐI ✨</button>
     </div>
 
-    <div id="screen-showcase" class="app-card hidden">
+    <!-- MÀN HÌNH KẾT QUẢ -->
+<div id="screen-showcase" class="app-card hidden">
     <h2 style="color: var(--pink-dark);">Triển lãm tác phẩm 🎨</h2>
-    <div id="showcase-content"></div>
-    <button onclick="location.reload()">Chơi lại từ đầu 🔄</button>
+    <div id="showcase-content" style="max-height: 60vh; overflow-y: auto; margin-bottom: 10px;"></div>
+    
+    <!-- Nút này sẽ được ẩn/hiện dựa trên quyền Host -->
+    <button id="btn-restart" class="hidden" onclick="restartGame()">Chơi ván mới 🔄</button>
+    <p id="wait-restart-msg" style="font-size: 0.8rem; color: #888;">Đợi chủ phòng bắt đầu ván mới...</p>
 </div>
     
     <!-- FIREBASE SDK (Dùng bản CDN để chạy ngay không cần cài đặt) -->
@@ -190,8 +194,19 @@ let lastSeenRound = 0; // Thêm dòng này để theo dõi vòng hiện tại
             }
         }
 
-        // 2. Xử lý logic chuyển vòng
-        if (data.status === "playing") {
+        // 2. Xử lý logic chuyển vòng và trạng thái game
+        if (data.status === "waiting") {
+            // LOGIC MỚI: Đưa mọi người về phòng chờ khi Host Restart
+            lastSeenRound = 0; // Reset biến theo dõi vòng chơi cho ván mới
+            document.getElementById('lobby-info').innerText = "Phòng Chờ";
+            showScreen('screen-lobby');
+            
+            // Nếu là Host thì hiện lại nút Bắt đầu
+            if (isHost) {
+                document.getElementById('btn-start').classList.remove('hidden');
+            }
+        } 
+        else if (data.status === "playing") {
             const serverRound = data.currentRound;
             const hasSubmitted = data.submitted && data.submitted[serverRound] && data.submitted[serverRound][myId];
 
@@ -199,8 +214,8 @@ let lastSeenRound = 0; // Thêm dòng này để theo dõi vòng hiện tại
                 // Nếu đã nộp bài vòng này, ẩn màn hình chơi, hiện thông báo chờ
                 document.getElementById('screen-game').classList.add('hidden');
                 document.getElementById('lobby-info').innerText = "Đang đợi mọi người... ✨";
-                showScreen('screen-lobby'); // Tạm thời quay lại sảnh chờ hoặc tạo màn hình chờ riêng
-                document.getElementById('btn-start').classList.add('hidden'); // Ẩn nút start nếu là host
+                showScreen('screen-lobby'); 
+                document.getElementById('btn-start').classList.add('hidden'); 
             } else if (serverRound > lastSeenRound) {
                 // CHỈ SETUP KHI VÒNG MỚI BẮT ĐẦU
                 lastSeenRound = serverRound;
@@ -323,6 +338,21 @@ function showDrawArea(text) {
 
         function renderShowcase(data) {
     showScreen('screen-showcase');
+    
+    // Xử lý hiển thị nút chơi lại dựa trên quyền Host
+    const btnRestart = document.getElementById('btn-restart');
+    const waitMsg = document.getElementById('wait-restart-msg');
+    
+    // Nếu chưa có phần tử thông báo chờ trong HTML, bạn có thể bổ sung sau, 
+    // ở đây code sẽ kiểm tra an toàn để không gây lỗi script.
+    if (isHost) {
+        if (btnRestart) btnRestart.classList.remove('hidden');
+        if (waitMsg) waitMsg.classList.add('hidden');
+    } else {
+        if (btnRestart) btnRestart.classList.add('hidden');
+        if (waitMsg) waitMsg.classList.remove('hidden');
+    }
+
     const container = document.getElementById('showcase-content');
     container.innerHTML = "";
 
@@ -332,7 +362,12 @@ function showDrawArea(text) {
         chainHtml += `<h3 style="color: var(--pink-dark);">Chuỗi của ${ownerName}</h3>`;
 
         const rounds = data.chains[ownerId];
-        for (let r in rounds) {
+        // Sắp xếp các vòng chơi theo thứ tự round_1, round_2... để hiển thị đúng tiến trình
+        const sortedRounds = Object.keys(rounds).sort((a, b) => {
+            return parseInt(a.split('_')[1]) - parseInt(b.split('_')[1]);
+        });
+
+        for (let r of sortedRounds) {
             const step = rounds[r];
             if (step.content.startsWith('data:image')) {
                 chainHtml += `<div style="margin:10px 0;"><small>${step.authorName} vẽ:</small><br><img src="${step.content}" style="width:100%; border-radius:10px; border:1px solid #eee;"></div>`;
@@ -344,6 +379,21 @@ function showDrawArea(text) {
         container.innerHTML += chainHtml;
     }
 }
+
+        window.restartGame = function() {
+    if (!isHost) return;
+
+    const roomRef = ref(db, `rooms/${currentRoom}`);
+    update(roomRef, {
+        status: "waiting",        // Đưa về trạng thái chờ
+        currentRound: null,       // Xóa vòng chơi hiện tại
+        submitted: null,          // Xóa các bài đã nộp
+        chains: null,             // Xóa dữ liệu album ván cũ
+        playerOrder: null         // Xóa thứ tự chơi cũ
+    }).then(() => {
+        console.log("Đã reset phòng thành công!");
+    });
+};
     </script>
 </body>
 </html>
