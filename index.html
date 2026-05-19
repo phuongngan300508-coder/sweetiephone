@@ -79,36 +79,6 @@
 #modal-help ul li {
     margin-bottom: 8px;
 }
-
-        /* Badge hiển thị số dư kẹo */
-.sweetie-balance {
-    background: white;
-    color: var(--pink-dark);
-    padding: 5px 15px;
-    border-radius: 20px;
-    font-weight: bold;
-    font-size: 0.9rem;
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
-    border: 1px solid var(--pink-main);
-    cursor: pointer;
-    margin-bottom: 10px;
-}
-
-/* Item trong cửa hàng */
-.shop-item {
-    background: rgba(255, 255, 255, 0.6);
-    padding: 15px;
-    border-radius: 20px;
-    margin: 10px 0;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    border: 1px solid #fff;
-}
-
-.shop-item b { color: #d63384; }
 </style>
 </head>
 <body>
@@ -122,7 +92,7 @@
     🆔 <span id="display-id">---</span> 📋
 </div>
     
-    <!-- MÀN HÌNH 1: ĐĂNG NHẬP -->
+    <!-- MÀN HÌNH 1: ĐĂNG NHẬP (Kiểu nút tròn tinh tế hơn) -->
 <div id="screen-join" class="app-card">
     <h2 style="color: var(--pink-dark);">🎀 Sweetie Phone 🎀</h2>
     <p style="color: #999; font-size: 0.85rem; margin-bottom: 25px;">Trò chơi tam sao thất bản cực ngọt ✨</p>
@@ -130,29 +100,19 @@
     <input type="text" id="input-room" placeholder="Mã phòng (vd: 123)">
     <button onclick="joinRoom()">Vào phòng ngay ✨</button>
 
-    <!-- Nút hướng dẫn -->
+    <!-- Nút hỗ trợ nằm gọn bên dưới nút vào phòng -->
     <div onclick="toggleHelp(true)" style="display: inline-block; margin-top: 10px; color: #888; cursor: pointer; font-size: 0.8rem;">
         Chưa biết cách chơi? <span style="color: var(--pink-dark); font-weight: bold;">Xem hướng dẫn</span>
     </div>
-    <br>
-    <!-- THÊM: Nút cửa hàng ở sảnh đăng nhập -->
-    <div onclick="toggleShop(true)" style="display: inline-block; margin-top: 5px; color: #d63384; cursor: pointer; font-size: 0.8rem; text-decoration: underline;">
-        🍭 Cửa hàng kẹo ngọt
-    </div>
 </div>
 
-<!-- MÀN HÌNH 2: PHÒNG CHỜ -->
-<div id="screen-lobby" class="app-card hidden">
-    <!-- THÊM: Hiển thị kẹo -->
-    <div class="sweetie-balance" onclick="toggleShop(true)" style="margin-bottom: 15px;">
-        🍬 <span class="sweetie-val">0</span> Kẹo ngọt
+    <!-- MÀN HÌNH 2: PHÒNG CHỜ -->
+    <div id="screen-lobby" class="app-card hidden">
+        <h3 id="lobby-info" style="color: var(--pink-dark);">Phòng Chờ</h3>
+        <ul id="player-list" style="list-style:none; padding:0;"></ul>
+        <p style="font-size: 0.8rem; color: #888;">Đợi chủ phòng bắt đầu nhé...</p>
+        <button id="btn-start" onclick="startGame()">BẮT ĐẦU GAME ❤️</button>
     </div>
-    
-    <h3 id="lobby-info" style="color: var(--pink-dark);">Phòng Chờ</h3>
-    <ul id="player-list" style="list-style:none; padding:0;"></ul>
-    <p style="font-size: 0.8rem; color: #888;">Đợi chủ phòng bắt đầu nhé...</p>
-    <button id="btn-start" onclick="startGame()">BẮT ĐẦU GAME ❤️</button>
-</div>
 
     <!-- MÀN HÌNH 3: CHƠI GAME -->
     <div id="screen-game" class="app-card hidden">
@@ -172,17 +132,12 @@
         <button onclick="submitTurn()">GỬI ĐI ✨</button>
     </div>
 
-   <!-- MÀN HÌNH KẾT QUẢ -->
+    <!-- MÀN HÌNH KẾT QUẢ -->
 <div id="screen-showcase" class="app-card hidden">
     <h2 style="color: var(--pink-dark);">Triển lãm tác phẩm 🎨</h2>
-    
-    <!-- THÊM: Hiển thị kẹo -->
-    <div class="sweetie-balance" onclick="toggleShop(true)" style="margin-bottom: 10px;">
-        🍬 <span class="sweetie-val">0</span> Kẹo ngọt
-    </div>
-
     <div id="showcase-content" style="max-height: 60vh; overflow-y: auto; margin-bottom: 10px;"></div>
     
+    <!-- Nút này sẽ được ẩn/hiện dựa trên quyền Host -->
     <button id="btn-restart" class="hidden" onclick="restartGame()">Chơi ván mới 🔄</button>
     <p id="wait-restart-msg" style="font-size: 0.8rem; color: #888;">Đợi chủ phòng bắt đầu ván mới...</p>
 </div>
@@ -325,7 +280,6 @@ canvas.addEventListener('touchmove', (e) => { e.preventDefault(); draw(e); });
             checkIfHost();
             listenRoom();
             showScreen('screen-lobby');
-            fetchSweeties();
 
             // Thêm đoạn này ngay bên dưới:
 document.getElementById('room-display').classList.remove('hidden');
@@ -524,12 +478,6 @@ async function checkAllSubmitted(round) {
     if (submittedCount >= totalPlayers) {
         if (round >= data.totalRounds) {
             // Nếu đã hết số vòng chơi (bằng số người chơi) -> Xem kết quả
-            
-            // THÊM: Chỉ Host mới thực hiện lệnh cộng kẹo cho cả phòng khi kết thúc màn chơi
-            if (isHost) {
-                rewardPlayers(); 
-            }
-            
             update(ref(db, `rooms/${currentRoom}`), { status: "showcase" });
         } else {
             // Nếu chưa hết -> Tăng vòng chơi lên
@@ -537,6 +485,7 @@ async function checkAllSubmitted(round) {
         }
     }
 }
+
         function showScreen(id) {
             document.querySelectorAll('.app-card').forEach(s => s.classList.add('hidden'));
             document.getElementById(id).classList.remove('hidden');
@@ -687,52 +636,6 @@ window.toggleHelp = function(show) {
         } else {
             modal.classList.add('hidden');
         }
-    }
-};
-
-        let mySweeties = 0;
-
-// Hàm cập nhật hiển thị số dư trên toàn bộ giao diện
-function updateSweetieUI(amount) {
-    mySweeties = amount;
-    const elements = document.querySelectorAll('.sweetie-val');
-    elements.forEach(el => el.innerText = mySweeties);
-    document.getElementById('shop-balance').innerText = mySweeties;
-}
-
-// Lấy số dư từ Firebase khi đăng nhập
-async function fetchSweeties() {
-    const snap = await get(ref(db, `users/${myId}/sweeties`));
-    updateSweetieUI(snap.val() || 0);
-}
-
-// Hàm cộng Kẹo khi hoàn thành màn chơi (Chỉ Host gọi 1 lần khi kết thúc)
-async function rewardPlayers() {
-    const roomSnap = await get(ref(db, `rooms/${currentRoom}`));
-    const players = roomSnap.val().players;
-    
-    for (let id in players) {
-        const userRef = ref(db, `users/${id}/sweeties`);
-        const currentSnap = await get(userRef);
-        const newBalance = (currentSnap.val() || 0) + 5;
-        await set(userRef, newBalance);
-    }
-}
-
-        // Logic Cửa hàng
-window.toggleShop = function(show) {
-    if (show) fetchSweeties(); // Cập nhật lại số dư mới nhất trước khi mở
-    document.getElementById('modal-shop').classList.toggle('hidden', !show);
-};
-
-window.buyItem = async function(price, value) {
-    if (mySweeties < price) return alert("Bạn không đủ kẹo rồi! Cố gắng chơi thêm nhé ✨");
-    
-    if (confirm(`Bạn có muốn đổi ${price} kẹo lấy ${value.toLocaleString()}đ không?`)) {
-        const newBalance = mySweeties - price;
-        await set(ref(db, `users/${myId}/sweeties`), newBalance);
-        updateSweetieUI(newBalance);
-        alert(`Đổi thành công! Liên hệ Admin để nhận quà nhé 🎁`);
     }
 };
     </script>
