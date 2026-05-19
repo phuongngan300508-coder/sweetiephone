@@ -274,25 +274,24 @@
     font-weight: bold;
 }
 
-        /* Giới hạn chiều cao và tạo thanh cuộn ẩn cho nội dung Shop */
-.shop-scroll-container {
-    max-height: 65vh; /* Chiều cao tối đa là 65% màn hình */
+        .shop-scroll-container {
+    max-height: 45vh; /* Hạ thấp thêm để card ngắn lại, lộ rõ icon kẹo phía trên */
     overflow-y: auto;
-    padding-right: 5px;
+    padding: 0 5px;
     margin: 10px 0;
     
-    /* Ẩn thanh cuộn đối với Chrome, Safari và Opera */
-    -ms-overflow-style: none;  /* IE và Edge */
-    scrollbar-width: none;  /* Firefox */
+    /* Giữ nguyên phần ẩn thanh cuộn */
+    -ms-overflow-style: none;
+    scrollbar-width: none;
 }
-
 .shop-scroll-container::-webkit-scrollbar {
-    display: none; /* Ẩn thanh cuộn Chrome */
+    display: none;
 }
 
-/* Thêm hiệu ứng bóng mờ nhẹ ở cuối để báo hiệu còn nội dung */
-.shop-content-wrapper {
-    position: relative;
+/* Đảm bảo card không bị dính lên đỉnh màn hình */
+#modal-shop .app-card {
+    margin-top: 40px; 
+    background: rgba(255, 240, 245, 0.98); /* Tăng độ đậm nền một chút cho ngọt */
 }
 </style>
 </head>
@@ -402,45 +401,40 @@
 
     <!-- Popup Cửa hàng Kẹo Ngọt -->
 <div id="modal-shop" class="hidden" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255, 193, 204, 0.4); backdrop-filter: blur(10px); z-index: 3000; display: flex; align-items: center; justify-content: center;">
-    <div class="app-card" style="padding-bottom: 15px;">
-        <div onclick="openShop(false)" style="position: absolute; top: 15px; right: 20px; cursor: pointer; font-size: 1.2rem; color: #FF85A2; z-index: 100;">✕</div>
+    <div class="app-card">
+        <!-- Nút đóng X luôn cố định -->
+        <div onclick="openShop(false)" style="position: absolute; top: 15px; right: 20px; cursor: pointer; font-size: 1.2rem; color: #FF85A2; z-index: 101;">✕</div>
         
+        <!-- Phần tiêu đề cố định -->
         <h3>Tiệm Kẹo Ngọt 🎀</h3>
-        
-        <div class="candy-balance" style="background: #FF5D8F; color: white; border: none; padding: 8px 20px; box-shadow: 0 4px 10px rgba(255, 93, 143, 0.3);">
+        <div class="candy-balance" style="background: #FF5D8F; color: white; border: none; padding: 8px 20px;">
             Số dư: <span id="shop-candy-value">0</span> 🍬
         </div>
 
-        <!-- BẮT ĐẦU VÙNG CUỘN -->
+        <!-- VÙNG CUỘN (Bây giờ đã thấp hơn) -->
         <div class="shop-scroll-container">
-            
             <!-- Danh sách gói kẹo -->
-            <div style="margin-bottom: 20px;">
-                <div class="shop-item"><span>1,000 kẹo</span><span class="shop-price">1.000đ</span></div>
-                <div class="shop-item"><span>5,000 kẹo</span><span class="shop-price">5.000đ</span></div>
-                <div class="shop-item"><span>10,000 kẹo</span><span class="shop-price">10.000đ</span></div>
-                <div class="shop-item"><span>20,000 kẹo</span><span class="shop-price">20.000đ</span></div>
-            </div>
+            <div class="shop-item"><span>1,000 kẹo</span><span class="shop-price">1.000đ</span></div>
+            <div class="shop-item"><span>5,000 kẹo</span><span class="shop-price">5.000đ</span></div>
+            <div class="shop-item"><span>10,000 kẹo</span><span class="shop-price">10.000đ</span></div>
+            <div class="shop-item"><span>20,000 kẹo</span><span class="shop-price">20.000đ</span></div>
 
-            <!-- Ô nạp kẹo thủ công -->
-            <div style="background: rgba(255, 255, 255, 0.5); padding: 15px; border-radius: 25px; border: 1px dashed #FF85A2;">
-                <p style="font-size: 0.8rem; color: #D63384; margin-top: 0;">Nạp thêm kẹo ngọt ✨</p>
+            <!-- Ô nạp kẹo -->
+            <div style="background: rgba(255, 255, 255, 0.6); padding: 15px; border-radius: 25px; border: 1px dashed #FF85A2; margin: 15px 0;">
+                <p style="font-size: 0.8rem; color: #D63384; margin: 0 0 10px 0;">Nạp thêm kẹo ngọt ✨</p>
                 <input type="number" id="input-cheat-candy" placeholder="Nhập số kẹo...">
-                <button onclick="addCandyFromInput()" style="background: #FF5D8F; margin-bottom: 0;">Nhận ngay 🍬</button>
+                <button onclick="addCandyFromInput()" style="background: #FF5D8F; margin: 0;">Nhận ngay 🍬</button>
             </div>
 
             <!-- Lịch sử nạp kẹo -->
-            <div style="margin-top: 15px;">
+            <div style="text-align: left;">
                 <p style="font-size: 0.75rem; color: #FF85A2; font-weight: bold; margin-bottom: 5px;">📜 Lịch sử nạp kẹo</p>
-                <div id="history-list">
-                    <!-- Lịch sử sẽ hiện ở đây -->
-                </div>
+                <div id="history-list"></div>
             </div>
-
         </div> 
-        <!-- KẾT THÚC VÙNG CUỘN -->
         
-        <button onclick="openShop(false)" class="btn-close-shop" style="margin-top: 5px;">Để sau nha 🌸</button>
+        <!-- Nút đóng cuối cùng cố định -->
+        <button onclick="openShop(false)" class="btn-close-shop" style="margin-top: 10px;">Để sau nha 🌸</button>
     </div>
 </div>
     <!-- FIREBASE SDK (Dùng bản CDN để chạy ngay không cần cài đặt) -->
