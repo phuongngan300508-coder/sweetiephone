@@ -51,7 +51,11 @@
     </style>
 </head>
 <body>
-
+<!-- Bộ đếm tiến độ nổi ở góc trên bên phải -->
+<div id="progress-counter" class="hidden" style="position: fixed; top: 10px; right: 10px; background: var(--pink-dark); color: white; padding: 5px 12px; border-radius: 20px; font-weight: bold; z-index: 1000; box-shadow: 0 4px 10px rgba(0,0,0,0.1);">
+    0/0
+</div>
+    
     <!-- MÀN HÌNH 1: ĐĂNG NHẬP -->
     <div id="screen-join" class="app-card">
         <h2 style="color: var(--pink-dark);">🎀 Sweetie Phone 🎀</h2>
@@ -194,30 +198,39 @@ let lastSeenRound = 0; // Thêm dòng này để theo dõi vòng hiện tại
             }
         }
 
-        // 2. Xử lý logic chuyển vòng và trạng thái game
+        // 2. Cập nhật bộ đếm tiến độ (Mới)
+        const counter = document.getElementById('progress-counter');
+        if (data.status === "playing") {
+            counter.classList.remove('hidden');
+            const total = Object.keys(data.players).length;
+            const done = data.submitted && data.submitted[data.currentRound] ? Object.keys(data.submitted[data.currentRound]).length : 0;
+            counter.innerText = `✨ ${done}/${total}`;
+            
+            // Tự động kiểm tra chuyển vòng nếu mình là Host
+            if (isHost && done >= total) {
+                checkAllSubmitted(data.currentRound);
+            }
+        } else {
+            counter.classList.add('hidden');
+        }
+
+        // 3. Logic chuyển vòng (giữ nguyên)
         if (data.status === "waiting") {
-            // LOGIC MỚI: Đưa mọi người về phòng chờ khi Host Restart
-            lastSeenRound = 0; // Reset biến theo dõi vòng chơi cho ván mới
+            lastSeenRound = 0; 
             document.getElementById('lobby-info').innerText = "Phòng Chờ";
             showScreen('screen-lobby');
-            
-            // Nếu là Host thì hiện lại nút Bắt đầu
-            if (isHost) {
-                document.getElementById('btn-start').classList.remove('hidden');
-            }
+            if (isHost) document.getElementById('btn-start').classList.remove('hidden');
         } 
         else if (data.status === "playing") {
             const serverRound = data.currentRound;
             const hasSubmitted = data.submitted && data.submitted[serverRound] && data.submitted[serverRound][myId];
 
             if (hasSubmitted) {
-                // Nếu đã nộp bài vòng này, ẩn màn hình chơi, hiện thông báo chờ
                 document.getElementById('screen-game').classList.add('hidden');
                 document.getElementById('lobby-info').innerText = "Đang đợi mọi người... ✨";
                 showScreen('screen-lobby'); 
                 document.getElementById('btn-start').classList.add('hidden'); 
             } else if (serverRound > lastSeenRound) {
-                // CHỈ SETUP KHI VÒNG MỚI BẮT ĐẦU
                 lastSeenRound = serverRound;
                 setupTurn(data);
             }
@@ -300,19 +313,22 @@ let lastSeenRound = 0; // Thêm dòng này để theo dõi vòng hiện tại
 };
 
 async function checkAllSubmitted(round) {
-    const roomRef = ref(db, `rooms/${currentRoom}`);
-    const snap = await get(roomRef);
-    const data = snap.val();
-    
+    // Lấy dữ liệu mới nhất một lần nữa để đảm bảo chính xác
+    const roomSnap = await get(ref(db, `rooms/${currentRoom}`));
+    const data = roomSnap.val();
+    if (!data) return;
+
     const totalPlayers = Object.keys(data.players).length;
     const submittedCount = data.submitted && data.submitted[round] ? Object.keys(data.submitted[round]).length : 0;
 
+    // Nếu đủ người nộp bài
     if (submittedCount >= totalPlayers) {
         if (round >= data.totalRounds) {
-            update(roomRef, { status: "showcase" });
+            // Nếu đã hết số vòng chơi (bằng số người chơi) -> Xem kết quả
+            update(ref(db, `rooms/${currentRoom}`), { status: "showcase" });
         } else {
-            // Tăng round lên để kích hoạt setupTurn cho mọi người
-            update(roomRef, { currentRound: round + 1 });
+            // Nếu chưa hết -> Tăng vòng chơi lên
+            update(ref(db, `rooms/${currentRoom}`), { currentRound: round + 1 });
         }
     }
 }
