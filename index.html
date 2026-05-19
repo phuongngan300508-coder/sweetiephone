@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Sweetie Phone 🎀</title>
+  <link rel="manifest" href="manifest.json">
+    <style>
+        :root {
+            --pink-main: #FFC1CC;
+            --pink-dark: #FF85A2;
+            --glass: rgba(255, 255, 255, 0.7);
+        }
+        body {
+            margin: 0; padding: 0;
+            background: linear-gradient(135deg, #FFF0F5 0%, #FFDEE9 100%);
+            font-family: 'Lexend', sans-serif;
+            display: flex; flex-direction: column; align-items: center; min-height: 100vh;
+        }
+        .app-card {
+            background: var(--glass);
+            backdrop-filter: blur(15px);
+            border: 2px solid white;
+            border-radius: 30px;
+            padding: 25px;
+            margin-top: 30px;
+            width: 85%; max-width: 400px;
+            box-shadow: 0 10px 25px rgba(255, 133, 162, 0.15);
+            text-align: center;
+        }
+        input, button {
+            width: 100%; padding: 12px; margin: 10px 0;
+            border-radius: 15px; border: none; outline: none;
+            box-sizing: border-box;
+        }
+        input { background: white; color: #555; border: 1px solid #eee; }
+        button {
+            background: var(--pink-dark); color: white;
+            font-weight: bold; cursor: pointer; transition: 0.2s;
+        }
+        button:active { transform: scale(0.95); }
+        canvas {
+            background: white; border: 2px solid var(--pink-main);
+            border-radius: 15px; touch-action: none; width: 100%; height: 300px;
+        }
+        .hidden { display: none; }
+        #player-list li {
+            background: white; padding: 8px; margin: 5px 0;
+            border-radius: 10px; color: var(--pink-dark);
+        }
+    </style>
+</head>
+<body>
+
+    <!-- MÀN HÌNH 1: ĐĂNG NHẬP -->
+    <div id="screen-join" class="app-card">
+        <h2 style="color: var(--pink-dark);">🎀 Sweetie Phone 🎀</h2>
+        <input type="text" id="input-name" placeholder="Tên của bạn...">
+        <input type="text" id="input-room" placeholder="Mã phòng (vd: 123)">
+        <button onclick="joinRoom()">Vào phòng ngay ✨</button>
+    </div>
+
+    <!-- MÀN HÌNH 2: PHÒNG CHỜ -->
+    <div id="screen-lobby" class="app-card hidden">
+        <h3 id="lobby-info" style="color: var(--pink-dark);">Phòng Chờ</h3>
+        <ul id="player-list" style="list-style:none; padding:0;"></ul>
+        <p style="font-size: 0.8rem; color: #888;">Đợi chủ phòng bắt đầu nhé...</p>
+        <button id="btn-start" onclick="startGame()">BẮT ĐẦU GAME ❤️</button>
+    </div>
+
+    <!-- MÀN HÌNH 3: CHƠI GAME -->
+    <div id="screen-game" class="app-card hidden">
+        <div id="prompt-area" style="margin-bottom:15px; font-weight:bold; color:#d63384; font-size: 1.2rem;"></div>
+        
+        <!-- Khu vực Viết -->
+        <div id="area-write" class="hidden">
+            <input type="text" id="input-phrase" placeholder="Viết gì đó thật hài hước...">
+        </div>
+
+        <!-- Khu vực Vẽ -->
+        <div id="area-draw" class="hidden">
+            <canvas id="drawCanvas" width="300" height="300"></canvas>
+            <button onclick="clearCanvas()" style="background:#eee; color:#666; font-size: 0.8rem;">Xóa vẽ lại ↩️</button>
+        </div>
+
+        <button onclick="submitTurn()">GỬI ĐI ✨</button>
+    </div>
+
+    <!-- FIREBASE SDK (Dùng bản CDN để chạy ngay không cần cài đặt) -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-app.js";
+        import { getDatabase, ref, set, onValue, update, get } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-database.js";
+
+        // CONFIG CỦA BẠN ĐÃ ĐƯỢC GẮN VÀO ĐÂY
+        const firebaseConfig = {
+            apiKey: "AIzaSyCXRVApjdZo4uooz4E4CU7vvJLPjTwzbXc",
+            authDomain: "sweetie-935a5.firebaseapp.com",
+            databaseURL: "https://sweetie-935a5-default-rtdb.firebaseio.com",
+            projectId: "sweetie-935a5",
+            storageBucket: "sweetie-935a5.firebasestorage.app",
+            messagingSenderId: "865853451079",
+            appId: "1:865853451079:web:6ea3067e351e001bd83a62"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+
+        let myId = "player_" + Math.random().toString(36).substr(2, 5);
+        let currentRoom = "";
+        let isHost = false;
+
+        // XỬ LÝ VẼ CANVAS
+        const canvas = document.getElementById('drawCanvas');
+        const ctx = canvas.getContext('2d');
+        let painting = false;
+
+        function startPaint(e) { painting = true; draw(e); }
+        function endPaint() { painting = false; ctx.beginPath(); }
+        function draw(e) {
+            if (!painting) return;
+            ctx.lineWidth = 4; ctx.lineCap = 'round'; ctx.strokeStyle = '#FF85A2';
+            const rect = canvas.getBoundingClientRect();
+            const clientX = e.clientX || (e.touches && e.touches[0].clientX);
+            const clientY = e.clientY || (e.touches && e.touches[0].clientY);
+            const x = clientX - rect.left;
+            const y = clientY - rect.top;
+            ctx.lineTo(x, y); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(x, y);
+        }
+
+        canvas.addEventListener('mousedown', startPaint);
+        canvas.addEventListener('mouseup', endPaint);
+        canvas.addEventListener('mousemove', draw);
+        canvas.addEventListener('touchstart', (e) => { e.preventDefault(); startPaint(e); });
+        canvas.addEventListener('touchend', endPaint);
+        canvas.addEventListener('touchmove', (e) => { e.preventDefault(); draw(e); });
+
+        window.clearCanvas = () => ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        // LOGIC GAME
+        window.joinRoom = function() {
+            const name = document.getElementById('input-name').value;
+            currentRoom = document.getElementById('input-room').value;
+            if(!name || !currentRoom) return alert("Bạn quên nhập tên hoặc mã phòng kìa! 🎀");
+
+            // Lưu thông tin người chơi lên Firebase
+            set(ref(db, `rooms/${currentRoom}/players/${myId}`), { 
+                name: name,
+                joinedAt: Date.now()
+            }).then(() => {
+                checkIfHost();
+                listenRoom();
+                showScreen('screen-lobby');
+            });
+        };
+
+        async function checkIfHost() {
+            const snapshot = await get(ref(db, `rooms/${currentRoom}/host`));
+            if (!snapshot.exists()) {
+                await set(ref(db, `rooms/${currentRoom}/host`), myId);
+                isHost = true;
+                document.getElementById('btn-start').classList.remove('hidden');
+            } else {
+                isHost = snapshot.val() === myId;
+                if (!isHost) document.getElementById('btn-start').classList.add('hidden');
+            }
+        }
+
+        function listenRoom() {
+            onValue(ref(db, `rooms/${currentRoom}`), (snapshot) => {
+                const data = snapshot.val();
+                if(!data) return;
+
+                // Cập nhật danh sách người chơi
+                const pList = document.getElementById('player-list');
+                pList.innerHTML = "";
+                const players = data.players;
+                for(let id in players) {
+                    pList.innerHTML += `<li>🌸 ${players[id].name} ${id === myId ? '(Bạn)' : ''}</li>`;
+                }
+
+                // Chuyển màn hình khi game bắt đầu
+                if(data.status === "playing") {
+                    setupTurn(data);
+                }
+            });
+        }
+
+        window.startGame = function() {
+            update(ref(db, `rooms/${currentRoom}`), { 
+                status: "playing", 
+                currentRound: 1 
+            });
+        };
+
+        function setupTurn(data) {
+            showScreen('screen-game');
+            const round = data.currentRound;
+            const isOdd = round % 2 !== 0;
+
+            if(isOdd) {
+                document.getElementById('area-write').classList.remove('hidden');
+                document.getElementById('area-draw').classList.add('hidden');
+                document.getElementById('prompt-area').innerText = (round === 1) ? "Ghi một câu đố bất kỳ:" : "Bạn thấy hình này giống gì?";
+            } else {
+                document.getElementById('area-write').classList.add('hidden');
+                document.getElementById('area-draw').classList.remove('hidden');
+                document.getElementById('prompt-area').innerText = "Vẽ lại câu này nhé:";
+            }
+        }
+
+        window.submitTurn = function() {
+            const isOdd = document.getElementById('area-write').classList.contains('hidden') === false;
+            let value = isOdd ? document.getElementById('input-phrase').value : canvas.toDataURL();
+            
+            if(!value || value === "") return alert("Đừng để trống nha! ❤️");
+
+            // Gửi dữ liệu lên Database
+            update(ref(db, `rooms/${currentRoom}/data/round_current/${myId}`), {
+                content: value,
+                author: myId
+            }).then(() => {
+                alert("Đã gửi bài! Đang chờ bạn bè... ✨");
+                // Reset form
+                document.getElementById('input-phrase').value = "";
+                clearCanvas();
+            });
+        };
+
+        function showScreen(id) {
+            document.querySelectorAll('.app-card').forEach(s => s.classList.add('hidden'));
+            document.getElementById(id).classList.remove('hidden');
+        }
+    </script>
+</body>
+</html>
