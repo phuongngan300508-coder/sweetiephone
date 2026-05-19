@@ -219,7 +219,7 @@ canvas.addEventListener('touchmove', (e) => { e.preventDefault(); draw(e); });
             }
         }
 
-        // 2. Cập nhật bộ đếm tiến độ (Mới)
+        // 2. Cập nhật bộ đếm tiến độ (giữ nguyên)
         const counter = document.getElementById('progress-counter');
         if (data.status === "playing") {
             counter.classList.remove('hidden');
@@ -227,7 +227,6 @@ canvas.addEventListener('touchmove', (e) => { e.preventDefault(); draw(e); });
             const done = data.submitted && data.submitted[data.currentRound] ? Object.keys(data.submitted[data.currentRound]).length : 0;
             counter.innerText = `✨ ${done}/${total}`;
             
-            // Tự động kiểm tra chuyển vòng nếu mình là Host
             if (isHost && done >= total) {
                 checkAllSubmitted(data.currentRound);
             }
@@ -235,7 +234,7 @@ canvas.addEventListener('touchmove', (e) => { e.preventDefault(); draw(e); });
             counter.classList.add('hidden');
         }
 
-        // 3. Logic chuyển vòng (giữ nguyên)
+        // 3. Logic chuyển trạng thái và vòng chơi
         if (data.status === "waiting") {
             lastSeenRound = 0; 
             document.getElementById('lobby-info').innerText = "Phòng Chờ";
@@ -257,6 +256,8 @@ canvas.addEventListener('touchmove', (e) => { e.preventDefault(); draw(e); });
             }
         } 
         else if (data.status === "showcase") {
+            // SỬA TẠI ĐÂY: Gọi renderShowcase liên tục để đồng bộ theo showcaseState
+            // Điều này giúp khách nhìn thấy từng bước nhảy ra khi Host bấm nút
             renderShowcase(data);
         }
     });
@@ -274,7 +275,12 @@ canvas.addEventListener('touchmove', (e) => { e.preventDefault(); draw(e); });
         status: "playing", 
         currentRound: 1,
         playerOrder: shuffled,
-        totalRounds: shuffled.length // Số vòng chơi bằng số người chơi
+        totalRounds: shuffled.length, // Số vòng chơi bằng số người chơi
+        // Khởi tạo trạng thái triển lãm để đồng bộ hóa cho các ván 3 người trở lên
+        showcaseState: {
+            playerIndex: 0,
+            stepIndex: 1
+        }
     });
 };
 
@@ -282,25 +288,39 @@ canvas.addEventListener('touchmove', (e) => { e.preventDefault(); draw(e); });
     showScreen('screen-game');
     const { currentRound, playerOrder } = data;
     const myIndex = playerOrder.indexOf(myId);
+    
+    // Logic Chain: Xác định bạn đang thực hiện tiếp nội dung cho chuỗi của ai
+    // Công thức này giúp bài viết/hình ảnh xoay vòng đều giữa các người chơi
     const ownerIndex = (myIndex - (currentRound - 1) + playerOrder.length) % playerOrder.length;
     myChainOwnerId = playerOrder[ownerIndex];
 
-    const isOdd = currentRound % 2 !== 0;
     const promptArea = document.getElementById('prompt-area');
-    promptArea.innerHTML = ""; // Xóa sạch nội dung cũ trước khi thêm mới
+    promptArea.innerHTML = ""; // Xóa sạch nội dung cũ (hình/chữ của vòng trước)
 
+    // Vòng 1 luôn là ghi mô tả khởi đầu
     if (currentRound === 1) {
-        showWriteArea("Ghi một câu đố bất kỳ:");
+        showWriteArea("Ghi một câu đố hoặc mô tả bất kỳ:");
     } else {
+        // Lấy dữ liệu của vòng vừa nộp ngay trước đó trong chuỗi này
         get(ref(db, `rooms/${currentRoom}/chains/${myChainOwnerId}/round_${currentRound - 1}`))
             .then(snap => {
                 if (!snap.exists()) return;
                 const prevContent = snap.val().content;
-                if (isOdd) {
+
+                // Nếu vòng hiện tại là số chẵn (2, 4, 6...): Bạn phải VẼ dựa trên mô tả
+                if (currentRound % 2 === 0) {
+                    showDrawArea(`Vẽ lại câu này: "${prevContent}"`);
+                } 
+                // Nếu vòng hiện tại là số lẻ (3, 5, 7...): Bạn phải ĐOÁN chữ dựa trên hình vẽ
+                else {
                     showWriteArea("Bạn thấy hình này vẽ gì?");
-                    promptArea.innerHTML += `<br><img src="${prevContent}" style="width:100%; border-radius:10px; border:2px solid var(--pink-main);">`;
-                } else {
-                    showDrawArea(`Vẽ lại câu: "${prevContent}"`);
+                    const img = document.createElement('img');
+                    img.src = prevContent;
+                    img.style.width = "100%";
+                    img.style.borderRadius = "10px";
+                    img.style.border = "2px solid var(--pink-main)";
+                    img.style.marginTop = "10px";
+                    promptArea.appendChild(img);
                 }
             });
     }
@@ -320,7 +340,8 @@ canvas.addEventListener('touchmove', (e) => { e.preventDefault(); draw(e); });
     // Lưu vào chuỗi của người chủ (myChainOwnerId)
     await set(ref(db, `rooms/${currentRoom}/chains/${myChainOwnerId}/round_${round}`), {
         content: value,
-        authorName: document.getElementById('input-name').value
+        authorName: document.getElementById('input-name').value,
+        authorId: myId // Bổ sung authorId để hỗ trợ logic hiển thị tin nhắn trái/phải
     });
 
     // Đánh dấu tôi đã xong vòng này
@@ -373,50 +394,87 @@ function showDrawArea(text) {
     clearCanvas(); // Xóa hình cũ
 }
 
+        let currentShowcasePlayerIndex = 0;
+let currentStepIndex = 1;
+        
         function renderShowcase(data) {
     showScreen('screen-showcase');
-    
-    // Xử lý hiển thị nút chơi lại dựa trên quyền Host
-    const btnRestart = document.getElementById('btn-restart');
-    const waitMsg = document.getElementById('wait-restart-msg');
-    
-    // Nếu chưa có phần tử thông báo chờ trong HTML, bạn có thể bổ sung sau, 
-    // ở đây code sẽ kiểm tra an toàn để không gây lỗi script.
-    if (isHost) {
-        if (btnRestart) btnRestart.classList.remove('hidden');
-        if (waitMsg) waitMsg.classList.add('hidden');
-    } else {
-        if (btnRestart) btnRestart.classList.add('hidden');
-        if (waitMsg) waitMsg.classList.remove('hidden');
-    }
-
     const container = document.getElementById('showcase-content');
     container.innerHTML = "";
 
-    for (let ownerId in data.chains) {
-        const ownerName = data.players[ownerId]?.name || "Ẩn danh";
-        let chainHtml = `<div style="border: 2px solid var(--pink-main); margin: 15px 0; padding: 15px; border-radius: 20px; background: white;">`;
-        chainHtml += `<h3 style="color: var(--pink-dark);">Chuỗi của ${ownerName}</h3>`;
+    // 1. Lấy trạng thái hiển thị hiện tại (mặc định là người đầu tiên, bước đầu tiên)
+    const state = data.showcaseState || { playerIndex: 0, stepIndex: 1 };
+    const players = data.playerOrder || Object.keys(data.players);
+    
+    const currentOwnerId = players[state.playerIndex];
+    const currentOwnerName = data.players[currentOwnerId]?.name || "Ẩn danh";
+    const chain = data.chains ? data.chains[currentOwnerId] : null;
 
-        const rounds = data.chains[ownerId];
-        // Sắp xếp các vòng chơi theo thứ tự round_1, round_2... để hiển thị đúng tiến trình
-        const sortedRounds = Object.keys(rounds).sort((a, b) => {
-            return parseInt(a.split('_')[1]) - parseInt(b.split('_')[1]);
-        });
-
-        for (let r of sortedRounds) {
-            const step = rounds[r];
-            if (step.content.startsWith('data:image')) {
-                chainHtml += `<div style="margin:10px 0;"><small>${step.authorName} vẽ:</small><br><img src="${step.content}" style="width:100%; border-radius:10px; border:1px solid #eee;"></div>`;
-            } else {
-                chainHtml += `<div style="margin:10px 0;"><small>${step.authorName} viết:</small><p style="font-weight:bold; color:#d63384;">"${step.content}"</p></div>`;
-            }
-        }
-        chainHtml += `</div>`;
-        container.innerHTML += chainHtml;
+    if (!chain) {
+        container.innerHTML = "<p>Đang tải dữ liệu triển lãm... ✨</p>";
+        return;
     }
+
+    // 2. Tạo giao diện Album dạng Chat
+    let html = `<h3 style="color: var(--pink-dark); margin-bottom: 20px;">Tác phẩm của: ${currentOwnerName}</h3>`;
+    html += `<div id="album-chat" style="display: flex; flex-direction: column; gap: 15px;">`;
+
+    const totalStepsAvailable = Object.keys(chain).length;
+
+    for (let i = 1; i <= state.stepIndex; i++) {
+        const step = chain[`round_${i}`];
+        if (!step) continue;
+
+        const isOdd = i % 2 !== 0; // Vòng 1, 3, 5 là chữ - nằm bên phải
+        const alignment = isOdd ? 'flex-end' : 'flex-start';
+        const bgColor = isOdd ? '#FFDEE9' : '#fff';
+        const label = step.content.startsWith('data:image') ? 'đã vẽ' : 'đã đoán';
+
+        html += `
+            <div style="align-self: ${alignment}; max-width: 85%; background: ${bgColor}; 
+                        padding: 12px; border-radius: 20px; border: 1px solid #eee; 
+                        box-shadow: 0 4px 6px rgba(0,0,0,0.05); text-align: left;">
+                <small style="color: #888; font-size: 0.7rem;">${step.authorName} ${label}:</small>
+                <div style="margin-top: 5px;">
+                    ${step.content.startsWith('data:image') 
+                        ? `<img src="${step.content}" style="width: 100%; border-radius: 10px;">` 
+                        : `<p style="font-weight: bold; color: #d63384; margin: 0; font-size: 1.1rem;">"${step.content}"</p>`}
+                </div>
+            </div>`;
+    }
+    html += `</div>`;
+
+    // 3. Nút điều khiển (Chỉ Host mới thấy các nút điều hướng tiếp theo)
+    let controlsHtml = `<div style="margin-top: 25px; display: flex; flex-direction: column; gap: 10px;">`;
+    
+    if (isHost) {
+        const isLastStep = state.stepIndex >= totalStepsAvailable;
+        const isLastPlayer = state.playerIndex >= players.length - 1;
+
+        if (!isLastStep) {
+            controlsHtml += `<button onclick="syncShowcase(${state.playerIndex}, ${state.stepIndex + 1})">Tiếp theo ➡️</button>`;
+        } else if (!isLastPlayer) {
+            controlsHtml += `<button onclick="syncShowcase(${state.playerIndex + 1}, 1)" style="background: #4CAF50;">Sang người tiếp theo 👤</button>`;
+        } else {
+            // Đã xem hết tất cả mọi người
+            controlsHtml += `<button onclick="restartGame()" style="background: var(--pink-dark);">Chơi ván mới 🔄</button>`;
+        }
+    } else {
+        controlsHtml += `<p style="font-size: 0.8rem; color: #888;">Đang xem triển lãm do chủ phòng điều khiển... 🎀</p>`;
+    }
+    controlsHtml += `</div>`;
+
+    container.innerHTML = html + controlsHtml;
 }
 
+// Hàm đồng bộ trạng thái triển lãm lên Firebase (Host gọi)
+window.syncShowcase = function(pIdx, sIdx) {
+    if (!isHost) return;
+    update(ref(db, `rooms/${currentRoom}/showcaseState`), {
+        playerIndex: pIdx,
+        stepIndex: sIdx
+    });
+};
         window.restartGame = function() {
     if (!isHost) return;
 
