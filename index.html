@@ -119,7 +119,7 @@
         const app = initializeApp(firebaseConfig);
         const db = getDatabase(app);
 
-        let myId = "player_" + Math.random().toString(36).substr(2, 5);
+        let myId = ""; 
 let currentRoom = "";
 let isHost = false;
 let playerOrder = [];
@@ -178,20 +178,39 @@ canvas.addEventListener('touchmove', (e) => { e.preventDefault(); draw(e); });
 
         // LOGIC GAME
         window.joinRoom = function() {
-            const name = document.getElementById('input-name').value;
-            currentRoom = document.getElementById('input-room').value;
-            if(!name || !currentRoom) return alert("Bạn quên nhập tên hoặc mã phòng kìa! 🎀");
+    const name = document.getElementById('input-name').value.trim();
+    currentRoom = document.getElementById('input-room').value.trim();
+    
+    if(!name || !currentRoom) return alert("Bạn quên nhập tên hoặc mã phòng kìa! 🎀");
 
-            // Lưu thông tin người chơi lên Firebase
-            set(ref(db, `rooms/${currentRoom}/players/${myId}`), { 
-                name: name,
-                joinedAt: Date.now()
-            }).then(() => {
-                checkIfHost();
-                listenRoom();
-                showScreen('screen-lobby');
-            });
-        };
+    // Tạo ID dựa trên tên (Ví dụ: "Henry Đào" -> "user_henry_dao")
+    // Việc này giúp nếu họ vào lại với tên cũ, họ sẽ dùng lại đúng ID cũ
+    myId = "user_" + name.toLowerCase().replace(/\s+/g, '_').replace(/[^\w]/g, '');
+
+    // Kiểm tra xem phòng có đang chơi dở không (Tùy chọn nâng cao)
+    get(ref(db, `rooms/${currentRoom}`)).then((snapshot) => {
+        const data = snapshot.val();
+        
+        // Nếu phòng đang chơi mà ID này không có trong danh sách đã tham gia từ đầu
+        if (data && data.status === "playing" && (!data.players || !data.players[myId])) {
+            return alert("Phòng này đang trong trận rồi, đợi ván sau nhé! ✨");
+        }
+
+        // Lưu/Cập nhật thông tin người chơi
+        set(ref(db, `rooms/${currentRoom}/players/${myId}`), { 
+            name: name,
+            joinedAt: Date.now()
+        }).then(() => {
+            checkIfHost();
+            listenRoom();
+            showScreen('screen-lobby');
+            
+            // Lưu vào LocalStorage để nếu họ F5 trang, mình có thể tự điền lại tên (tiện ích thêm)
+            localStorage.setItem('sweetie_name', name);
+            localStorage.setItem('sweetie_room', currentRoom);
+        });
+    });
+};
 
         async function checkIfHost() {
             const snapshot = await get(ref(db, `rooms/${currentRoom}/host`));
@@ -489,6 +508,14 @@ window.syncShowcase = function(pIdx, sIdx) {
         console.log("Đã reset phòng thành công!");
     });
 };
+
+        // Tự động lấy lại tên cũ nếu có
+window.addEventListener('load', () => {
+    const savedName = localStorage.getItem('sweetie_name');
+    const savedRoom = localStorage.getItem('sweetie_room');
+    if (savedName) document.getElementById('input-name').value = savedName;
+    if (savedRoom) document.getElementById('input-room').value = savedRoom;
+});
     </script>
 </body>
 </html>
