@@ -135,23 +135,44 @@ let lastSeenRound = 0; // Thêm dòng này để theo dõi vòng hiện tại
         function startPaint(e) { painting = true; draw(e); }
         function endPaint() { painting = false; ctx.beginPath(); }
         function draw(e) {
-            if (!painting) return;
-            ctx.lineWidth = 4; ctx.lineCap = 'round'; ctx.strokeStyle = '#FF85A2';
-            const rect = canvas.getBoundingClientRect();
-            const clientX = e.clientX || (e.touches && e.touches[0].clientX);
-            const clientY = e.clientY || (e.touches && e.touches[0].clientY);
-            const x = clientX - rect.left;
-            const y = clientY - rect.top;
-            ctx.lineTo(x, y); ctx.stroke();
-            ctx.beginPath(); ctx.moveTo(x, y);
-        }
+    if (!painting) return;
+    
+    ctx.lineWidth = 4;
+    ctx.lineCap = 'round';
+    ctx.strokeStyle = '#FF85A2';
 
-        canvas.addEventListener('mousedown', startPaint);
-        canvas.addEventListener('mouseup', endPaint);
-        canvas.addEventListener('mousemove', draw);
-        canvas.addEventListener('touchstart', (e) => { e.preventDefault(); startPaint(e); });
-        canvas.addEventListener('touchend', endPaint);
-        canvas.addEventListener('touchmove', (e) => { e.preventDefault(); draw(e); });
+    const rect = canvas.getBoundingClientRect();
+    let x, y;
+
+    if (e.touches) {
+        // Tọa độ cho cảm ứng (điện thoại)
+        x = e.touches[0].clientX - rect.left;
+        y = e.touches[0].clientY - rect.top;
+    } else {
+        // Tọa độ cho chuột (máy tính)
+        x = e.clientX - rect.left;
+        y = e.clientY - rect.top;
+    }
+
+    // Xử lý tỉ lệ nếu Canvas bị co giãn bằng CSS
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    
+    ctx.lineTo(x * scaleX, y * scaleY);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(x * scaleX, y * scaleY);
+}
+
+        canvas.addEventListener('mousedown', (e) => { painting = true; draw(e); });
+canvas.addEventListener('mouseup', endPaint);
+canvas.addEventListener('mouseleave', endPaint); // Thêm cái này để khi chuột ra ngoài canvas sẽ ngừng vẽ
+canvas.addEventListener('mousemove', draw);
+
+// Giữ nguyên cho điện thoại như bạn yêu cầu
+canvas.addEventListener('touchstart', (e) => { e.preventDefault(); painting = true; draw(e); });
+canvas.addEventListener('touchend', endPaint);
+canvas.addEventListener('touchmove', (e) => { e.preventDefault(); draw(e); });
 
         window.clearCanvas = () => ctx.clearRect(0, 0, canvas.width, canvas.height);
 
