@@ -627,12 +627,15 @@ window.addEventListener('load', () => {
     });
 };
 
-        window.toggleHelp = function(show) {
+        // Đảm bảo hàm được gán vào window để HTML có thể gọi được
+window.toggleHelp = function(show) {
     const modal = document.getElementById('modal-help');
-    if (show) {
-        modal.classList.remove('hidden');
-    } else {
-        modal.classList.add('hidden');
+    if (modal) {
+        if (show) {
+            modal.classList.remove('hidden');
+        } else {
+            modal.classList.add('hidden');
+        }
     }
 };
     </script>
