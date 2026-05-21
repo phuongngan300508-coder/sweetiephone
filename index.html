@@ -724,27 +724,38 @@ canvas.addEventListener('touchmove', (e) => { e.preventDefault(); draw(e); });
             counter.classList.add('hidden');
         }
 
-        // 3. Logic chuyển trạng thái và vòng chơi
+        // 3. Logic chuyển trạng thái và CẬP NHẬT DÒNG CHỮ THÔNG BÁO
+        const lobbyMsg = document.getElementById('lobby-msg'); // Dòng thông báo ở sảnh
+        const waitRestartMsg = document.getElementById('wait-restart-msg'); // Dòng thông báo ở triển lãm
+
         if (data.status === "waiting") {
-    lastSeenRound = 0; 
-    
-    // THÊM LOGIC RESET VOTE CÁ NHÂN TẠI ĐÂY
-    // Tìm và xóa tất cả các key có tên 'voted_' và 'processed_votes_'
-    for (let key in localStorage) {
-        if (key.startsWith('voted_') || key.startsWith('processed_votes_')) {
-            localStorage.removeItem(key);
+            lastSeenRound = 0; 
+            
+            // THÊM LOGIC RESET VOTE CÁ NHÂN TẠI ĐÂY
+            for (let key in localStorage) {
+                if (key.startsWith('voted_') || key.startsWith('processed_votes_')) {
+                    localStorage.removeItem(key);
+                }
+            }
+            
+            // Cập nhật chữ cho khu vực Phòng chờ (đầu game)
+            if (lobbyMsg) {
+                lobbyMsg.innerText = isHost ? "Bạn là chủ phòng, hãy bắt đầu khi đủ người nhé! ✨" : "Đợi chủ phòng bắt đầu nhé... 🎀";
+            }
+
+            document.getElementById('lobby-info').innerText = "Phòng Chờ";
+            showScreen('screen-lobby');
+            if (isHost) document.getElementById('btn-start').classList.remove('hidden');
         }
-    }
-    
-    document.getElementById('lobby-info').innerText = "Phòng Chờ";
-    showScreen('screen-lobby');
-    if (isHost) document.getElementById('btn-start').classList.remove('hidden');
-}
         else if (data.status === "playing") {
             const serverRound = data.currentRound;
             const hasSubmitted = data.submitted && data.submitted[serverRound] && data.submitted[serverRound][myId];
 
             if (hasSubmitted) {
+                // Cập nhật chữ khi đã nộp bài và đang quay lại sảnh đợi người khác
+                if (lobbyMsg) {
+                    lobbyMsg.innerText = isHost ? "Bạn đã xong! Đang đợi các thành viên khác nộp bài... ⏳" : "Đã gửi bài! Đang đợi mọi người nộp xong nhé... ✨";
+                }
                 document.getElementById('screen-game').classList.add('hidden');
                 document.getElementById('lobby-info').innerText = "Đang đợi mọi người... ✨";
                 showScreen('screen-lobby'); 
@@ -755,8 +766,10 @@ canvas.addEventListener('touchmove', (e) => { e.preventDefault(); draw(e); });
             }
         } 
         else if (data.status === "showcase") {
-            // SỬA TẠI ĐÂY: Gọi renderShowcase liên tục để đồng bộ theo showcaseState
-            // Điều này giúp khách nhìn thấy từng bước nhảy ra khi Host bấm nút
+            // Cập nhật chữ cho màn hình Triển lãm
+            if (waitRestartMsg) {
+                waitRestartMsg.innerText = isHost ? "Bạn đang điều khiển triển lãm, hãy bấm tiếp tục nhé! 🎨" : "Đang xem triển lãm do chủ phòng điều khiển... 🎀";
+            }
             renderShowcase(data);
         }
     });
