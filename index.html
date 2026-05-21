@@ -379,7 +379,7 @@
     <div class="candy-balance">🍬 <span class="candy-value">0</span></div>
     <h3 id="lobby-info" style="color: var(--pink-dark);">Phòng Chờ</h3>
     <ul id="player-list" style="list-style:none; padding:0;"></ul>
-    <p style="font-size: 0.8rem; color: #888;">Đợi chủ phòng bắt đầu nhé...</p>
+    <p id="lobby-wait-msg" style="font-size: 0.8rem; color: #888; font-weight: 500;"></p>
     
     <button id="btn-start" onclick="startGame()">BẮT ĐẦU GAME ❤️</button>
     <!-- NÚT THOÁT PHÒNG MỚI -->
@@ -422,7 +422,6 @@
     
     <!-- Nút này sẽ được ẩn/hiện dựa trên quyền Host -->
     <button id="btn-restart" class="hidden" onclick="restartGame()">Chơi ván mới 🔄</button>
-    <p id="wait-restart-msg" style="font-size: 0.8rem; color: #888;">Đợi chủ phòng bắt đầu ván mới...</p>
 </div>
 
     <!-- Popup hướng dẫn chơi phân loại theo số người -->
@@ -686,7 +685,7 @@ canvas.addEventListener('touchmove', (e) => { e.preventDefault(); draw(e); });
 
         checkIfHost(); 
 
-        // 1. Cập nhật danh sách người chơi (Đã thêm màu hồng và icon hoa/vương miện cố định)
+        // 1. Cập nhật danh sách người chơi (Màu hồng + Icon hoa/vương miện cố định)
         const updateLists = () => {
             const round = data.currentRound;
             const submittedPlayers = (data.submitted && data.submitted[round]) ? data.submitted[round] : {};
@@ -698,18 +697,15 @@ canvas.addEventListener('touchmove', (e) => { e.preventDefault(); draw(e); });
                 const name = data.players[id].name;
                 let statusIcon = "";
                 
-                // Icon trạng thái nộp bài (Chỉ hiện khi đang playing)
                 if (data.status === "playing") {
                     const hasDone = submittedPlayers[id] === true;
                     statusIcon = hasDone 
                         ? `<span class="status-icon status-done">✔</span>` 
                         : `<span class="status-icon status-pending">✘</span>`;
                 } else {
-                    // Khi ở sảnh chờ, statusIcon trống vì icon hoa đã nằm ở phần tên
                     statusIcon = ""; 
                 }
 
-                // Render Item: Tên màu hồng + Icon Hoa/Vương miện + Tình trạng nộp bài
                 htmlContent += `
                     <li style="display: flex; justify-content: center; align-items: center; gap: 10px; background: white; padding: 10px; margin: 8px 0; border-radius: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.03);">
                         <span style="font-weight: 600; color: var(--pink-dark);">
@@ -727,6 +723,14 @@ canvas.addEventListener('touchmove', (e) => { e.preventDefault(); draw(e); });
         };
 
         if (data.players) updateLists();
+
+        // --- MỚI: CẬP NHẬT THÔNG BÁO TẠI PHÒNG CHỜ THEO VAI TRÒ ---
+        const lobbyWaitMsg = document.querySelector('#screen-lobby p[style*="font-size: 0.8rem"]');
+        if (lobbyWaitMsg) {
+            lobbyWaitMsg.innerText = isHost 
+                ? "Bạn là chủ phòng, hãy bắt đầu khi đủ người nhé! 👑" 
+                : "Đang đợi chủ phòng bắt đầu ván mới... 🌸";
+        }
 
         // 2. Cập nhật bộ đếm tiến độ (Giữ nguyên logic)
         const counter = document.getElementById('progress-counter');
@@ -1009,13 +1013,22 @@ function renderShowcase(data) {
         } else if (!isLastPlayer) {
             controlsHtml += `<button onclick="syncShowcase(${state.playerIndex + 1}, 1)" style="background: #4CAF50; width: 100%;">Sang người tiếp theo 👤</button>`;
         } else {
+            // Khi đã hết bài để xem, hiện nút Reset cho Host
             controlsHtml += `<button onclick="restartGame()" style="background: var(--pink-dark); width: 100%;">Chơi ván mới 🔄</button>`;
         }
     } else {
-        controlsHtml += `<p style="font-size: 0.8rem; color: #888;">Đang xem triển lãm do chủ phòng điều khiển... 🎀</p>`;
+        // --- LOGIC CHO NGƯỜI CHƠI ---
+        const isLastStep = state.stepIndex >= totalStepsAvailable;
+        const isLastPlayer = state.playerIndex >= players.length - 1;
+
+        if (isLastStep && isLastPlayer) {
+            // Chỉ hiện câu này khi buổi triển lãm đã thực sự kết thúc
+            controlsHtml += `<p style="font-size: 0.8rem; color: #FF85A2; font-weight: bold;">Buổi triển lãm đã kết thúc! Đang đợi chủ phòng mở ván mới... 🎀</p>`;
+        } else {
+            controlsHtml += `<p style="font-size: 0.8rem; color: #888;">Đang xem triển lãm do chủ phòng điều khiển... 🎀</p>`;
+        }
     }
     controlsHtml += `</div>`;
-
     container.innerHTML = html + controlsHtml;
 }
         
