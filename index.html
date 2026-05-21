@@ -683,11 +683,14 @@ canvas.addEventListener('touchmove', (e) => { e.preventDefault(); draw(e); });
                     statusIcon = isThisPlayerHost ? '👑' : '🌸';
                 }
 
-                pList.innerHTML += `
-                    <li style="display: flex; justify-content: space-between; align-items: center;">
-                        <span>${isThisPlayerHost && data.status === "playing" ? '👑 ' : ''}${name} ${id === myId ? '(Bạn)' : ''}</span>
-                        ${statusIcon}
-                    </li>`;
+                // Thay thế đoạn pList.innerHTML trong hàm listenRoom
+pList.innerHTML += `
+    <li style="display: flex; justify-content: center; align-items: center; gap: 10px; background: white; padding: 10px; margin: 8px 0; border-radius: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.03);">
+        <span style="font-weight: 500;">
+            ${isThisPlayerHost && data.status === "playing" ? '👑 ' : ''}${name} ${id === myId ? '(Bạn)' : ''}
+        </span>
+        ${statusIcon}
+    </li>`;
             }
         }
 
