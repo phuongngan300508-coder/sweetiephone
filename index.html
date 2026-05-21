@@ -686,8 +686,7 @@ canvas.addEventListener('touchmove', (e) => { e.preventDefault(); draw(e); });
 
         checkIfHost(); 
 
-        // 1. Cập nhật danh sách người chơi (Giữ nguyên logic render của Henry)
-        // Chúng ta sẽ render vào cả 2 list: sảnh chính (player-list) và sảnh chờ nộp bài (waiting-player-list)
+        // 1. Cập nhật danh sách người chơi (Đã thêm màu hồng và icon hoa/vương miện cố định)
         const updateLists = () => {
             const round = data.currentRound;
             const submittedPlayers = (data.submitted && data.submitted[round]) ? data.submitted[round] : {};
@@ -699,29 +698,30 @@ canvas.addEventListener('touchmove', (e) => { e.preventDefault(); draw(e); });
                 const name = data.players[id].name;
                 let statusIcon = "";
                 
+                // Icon trạng thái nộp bài (Chỉ hiện khi đang playing)
                 if (data.status === "playing") {
                     const hasDone = submittedPlayers[id] === true;
                     statusIcon = hasDone 
                         ? `<span class="status-icon status-done">✔</span>` 
                         : `<span class="status-icon status-pending">✘</span>`;
                 } else {
-                    statusIcon = isThisPlayerHost ? '👑' : '🌸';
+                    // Khi ở sảnh chờ, statusIcon trống vì icon hoa đã nằm ở phần tên
+                    statusIcon = ""; 
                 }
 
+                // Render Item: Tên màu hồng + Icon Hoa/Vương miện + Tình trạng nộp bài
                 htmlContent += `
                     <li style="display: flex; justify-content: center; align-items: center; gap: 10px; background: white; padding: 10px; margin: 8px 0; border-radius: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.03);">
-                        <span style="font-weight: 500;">
-                            ${isThisPlayerHost && data.status === "playing" ? '👑 ' : ''}${name} ${id === myId ? '(Bạn)' : ''}
+                        <span style="font-weight: 600; color: var(--pink-dark);">
+                            ${isThisPlayerHost ? '👑 ' : '🌸 '}${name} ${id === myId ? '(Bạn)' : ''}
                         </span>
                         ${statusIcon}
                     </li>`;
             }
 
-            // Đổ dữ liệu vào list sảnh chính
             const pList = document.getElementById('player-list');
             if (pList) pList.innerHTML = htmlContent;
 
-            // Đổ dữ liệu vào list chờ nộp bài (nếu màn hình đó đang hiện)
             const wList = document.getElementById('waiting-player-list');
             if (wList) wList.innerHTML = htmlContent;
         };
@@ -760,7 +760,6 @@ canvas.addEventListener('touchmove', (e) => { e.preventDefault(); draw(e); });
             const hasSubmitted = data.submitted && data.submitted[serverRound] && data.submitted[serverRound][myId];
 
             if (hasSubmitted) {
-                // CHUYỂN SANG MÀN HÌNH CHỜ NỘP BÀI RIÊNG
                 document.getElementById('screen-game').classList.add('hidden');
                 showScreen('screen-waiting-turn'); 
 
