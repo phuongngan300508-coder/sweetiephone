@@ -663,22 +663,20 @@ canvas.addEventListener('touchmove', (e) => { e.preventDefault(); draw(e); });
     onValue(roomRef, (snapshot) => {
         const data = snapshot.val();
 
-        // LOGIC CHỐNG KẸT: Nếu phòng không tồn tại hoặc mình bị "đá" ra khỏi danh sách players
+        // LOGIC CHỐNG KẸT (Giữ nguyên)
         if (!data || !data.players || !data.players[myId]) {
-            // Chỉ thực hiện nếu mình vẫn còn đang tưởng là mình ở trong phòng
             if (currentRoom !== "") {
                 currentRoom = "";
                 isHost = false;
                 document.getElementById('room-display').classList.add('hidden');
                 showScreen('screen-join');
-                // alert("Phòng đã giải tán hoặc bạn đã rời phòng! 🌸");
             }
             return;
         }
 
         checkIfHost(); 
 
-        // 1. Cập nhật danh sách người chơi (giữ nguyên logic render của Henry)
+        // 1. Cập nhật danh sách người chơi (Giữ nguyên logic của Henry)
         const pList = document.getElementById('player-list');
         if (pList && data.players) {
             pList.innerHTML = "";
@@ -709,7 +707,7 @@ canvas.addEventListener('touchmove', (e) => { e.preventDefault(); draw(e); });
             }
         }
 
-        // 2. Cập nhật bộ đếm tiến độ (giữ nguyên)
+        // 2. Cập nhật bộ đếm tiến độ (Giữ nguyên)
         const counter = document.getElementById('progress-counter');
         if (data.status === "playing") {
             counter.classList.remove('hidden');
@@ -724,29 +722,40 @@ canvas.addEventListener('touchmove', (e) => { e.preventDefault(); draw(e); });
             counter.classList.add('hidden');
         }
 
-        // 3. Logic chuyển trạng thái và vòng chơi
+        // 3. Logic xử lý văn bản thông báo theo từng giai đoạn (Phần chỉnh sửa)
+        const lobbyMsg = document.getElementById('lobby-msg'); 
+        const waitRestartMsg = document.getElementById('wait-restart-msg');
+
         if (data.status === "waiting") {
-    lastSeenRound = 0; 
-    
-    // THÊM LOGIC RESET VOTE CÁ NHÂN TẠI ĐÂY
-    // Tìm và xóa tất cả các key có tên 'voted_' và 'processed_votes_'
-    for (let key in localStorage) {
-        if (key.startsWith('voted_') || key.startsWith('processed_votes_')) {
-            localStorage.removeItem(key);
+            lastSeenRound = 0; 
+            for (let key in localStorage) {
+                if (key.startsWith('voted_') || key.startsWith('processed_votes_')) {
+                    localStorage.removeItem(key);
+                }
+            }
+            
+            // Chữ tại Phòng chờ đầu game
+            if (lobbyMsg) {
+                lobbyMsg.innerText = isHost 
+                    ? "Bạn là chủ phòng, hãy bắt đầu khi đủ người nhé! ✨" 
+                    : "Đợi chủ phòng bắt đầu ván mới nhé... 🎀";
+            }
+
+            document.getElementById('lobby-info').innerText = "Phòng Chờ";
+            showScreen('screen-lobby');
+            if (isHost) document.getElementById('btn-start').classList.remove('hidden');
         }
-    }
-    
-    document.getElementById('lobby-info').innerText = "Phòng Chờ";
-    showScreen('screen-lobby');
-    if (isHost) document.getElementById('btn-start').classList.remove('hidden');
-}
         else if (data.status === "playing") {
             const serverRound = data.currentRound;
             const hasSubmitted = data.submitted && data.submitted[serverRound] && data.submitted[serverRound][myId];
 
             if (hasSubmitted) {
+                // Chữ khi đang đợi mọi người nộp bài
+                if (lobbyMsg) {
+                    lobbyMsg.innerText = "Đã gửi bài thành công! Đang đợi mọi người nộp nốt nhé... ⏳";
+                }
                 document.getElementById('screen-game').classList.add('hidden');
-                document.getElementById('lobby-info').innerText = "Đang đợi mọi người... ✨";
+                document.getElementById('lobby-info').innerText = `Vòng ${serverRound}: Đợi bạn bè...`;
                 showScreen('screen-lobby'); 
                 document.getElementById('btn-start').classList.add('hidden'); 
             } else if (serverRound > lastSeenRound) {
@@ -755,13 +764,17 @@ canvas.addEventListener('touchmove', (e) => { e.preventDefault(); draw(e); });
             }
         } 
         else if (data.status === "showcase") {
-            // SỬA TẠI ĐÂY: Gọi renderShowcase liên tục để đồng bộ theo showcaseState
-            // Điều này giúp khách nhìn thấy từng bước nhảy ra khi Host bấm nút
+            // Chữ tại màn hình triển lãm
+            if (waitRestartMsg) {
+                waitRestartMsg.innerText = isHost 
+                    ? "Bạn đang điều khiển triển lãm, hãy bấm Tiếp theo để mọi người cùng xem! 🎨" 
+                    : "Đang xem tác phẩm do chủ phòng điều khiển... 🎀";
+            }
             renderShowcase(data);
         }
     });
 }
-
+        
         window.startGame = async function() {
     const snapshot = await get(ref(db, `rooms/${currentRoom}/players`));
     const players = Object.keys(snapshot.val());
