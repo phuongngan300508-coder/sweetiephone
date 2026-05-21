@@ -333,6 +333,14 @@
     0%, 100% { transform: scale(1); }
     50% { transform: scale(1.3); }
 }
+
+        #waiting-player-status-list div {
+    background: white;
+    padding: 5px 10px;
+    border-radius: 10px;
+    margin: 2px;
+    transition: all 0.3s ease;
+}
 </style>
 </head>
 <body>
@@ -378,6 +386,21 @@
     <button onclick="leaveRoom()" style="background: #f0f0f0; color: #888; margin-top: 5px;">Thoát phòng ↩️</button>
 </div>
 
+    <!-- MÀN HÌNH 2.5: ĐỢI MỌI NGƯỜI NỘP BÀI (Khác với sảnh chờ chính) -->
+<div id="screen-waiting-turn" class="app-card hidden">
+    <div class="loader" style="margin: 0 auto 15px auto;"></div>
+    <h3 style="color: var(--pink-dark);">Đã gửi tác phẩm! ✨</h3>
+    <p style="color: #888; font-size: 0.9rem;">Tác phẩm của bạn đang được giữ bí mật. Đợi bạn bè một chút nhé...</p>
+    
+    <div style="background: rgba(255,255,255,0.5); padding: 15px; border-radius: 20px; margin-top: 15px; border: 1px dashed var(--pink-main);">
+        <p style="margin: 0; color: #d63384; font-weight: bold;">Tiến độ hiện tại:</p>
+        <div id="waiting-progress-text" style="font-size: 1.5rem; margin: 10px 0;">0/0</div>
+        <div id="waiting-player-status-list" style="font-size: 0.8rem; text-align: left; display: grid; grid-template-columns: 1fr 1fr; gap: 5px;">
+            <!-- Danh sách con người đã/chưa xong sẽ hiện ở đây -->
+        </div>
+    </div>
+</div>
+    
     <!-- MÀN HÌNH 3: CHƠI GAME -->
     <div id="screen-game" class="app-card hidden">
         <div id="prompt-area" style="margin-bottom:15px; font-weight:bold; color:#d63384; font-size: 1.2rem;"></div>
@@ -655,22 +678,20 @@ canvas.addEventListener('touchmove', (e) => { e.preventDefault(); draw(e); });
     onValue(roomRef, (snapshot) => {
         const data = snapshot.val();
 
-        // LOGIC CHỐNG KẸT: Nếu phòng không tồn tại hoặc mình bị "đá" ra khỏi danh sách players
+        // LOGIC CHỐNG KẸT: Giữ nguyên 100%
         if (!data || !data.players || !data.players[myId]) {
-            // Chỉ thực hiện nếu mình vẫn còn đang tưởng là mình ở trong phòng
             if (currentRoom !== "") {
                 currentRoom = "";
                 isHost = false;
                 document.getElementById('room-display').classList.add('hidden');
                 showScreen('screen-join');
-                // alert("Phòng đã giải tán hoặc bạn đã rời phòng! 🌸");
             }
             return;
         }
 
         checkIfHost(); 
 
-        // 1. Cập nhật danh sách người chơi (giữ nguyên logic render của Henry)
+        // 1. Cập nhật danh sách người chơi (Giữ nguyên logic render của Henry)
         const pList = document.getElementById('player-list');
         if (pList && data.players) {
             pList.innerHTML = "";
@@ -701,7 +722,7 @@ canvas.addEventListener('touchmove', (e) => { e.preventDefault(); draw(e); });
             }
         }
 
-        // 2. Cập nhật bộ đếm tiến độ (giữ nguyên)
+        // 2. Cập nhật bộ đếm tiến độ (Giữ nguyên logic)
         const counter = document.getElementById('progress-counter');
         if (data.status === "playing") {
             counter.classList.remove('hidden');
@@ -718,42 +739,48 @@ canvas.addEventListener('touchmove', (e) => { e.preventDefault(); draw(e); });
 
         // 3. Logic chuyển trạng thái và vòng chơi
         if (data.status === "waiting") {
-    lastSeenRound = 0; 
-    
-    // THÊM LOGIC RESET VOTE CÁ NHÂN TẠI ĐÂY
-    // Tìm và xóa tất cả các key có tên 'voted_' và 'processed_votes_'
-    for (let key in localStorage) {
-        if (key.startsWith('voted_') || key.startsWith('processed_votes_')) {
-            localStorage.removeItem(key);
+            lastSeenRound = 0; 
+            
+            // Logic reset vote cá nhân: Giữ nguyên 100%
+            for (let key in localStorage) {
+                if (key.startsWith('voted_') || key.startsWith('processed_votes_')) {
+                    localStorage.removeItem(key);
+                }
+            }
+            
+            document.getElementById('lobby-info').innerText = "Phòng Chờ";
+            showScreen('screen-lobby');
+            if (isHost) document.getElementById('btn-start').classList.remove('hidden');
         }
-    }
-    
-    document.getElementById('lobby-info').innerText = "Phòng Chờ";
-    showScreen('screen-lobby');
-    if (isHost) document.getElementById('btn-start').classList.remove('hidden');
-}
         else if (data.status === "playing") {
             const serverRound = data.currentRound;
             const hasSubmitted = data.submitted && data.submitted[serverRound] && data.submitted[serverRound][myId];
 
             if (hasSubmitted) {
+                // CHỈNH SỬA TẠI ĐÂY: Chuyển sang màn hình chờ nộp bài (screen-waiting-turn)
+                // thay vì quay lại screen-lobby của sảnh game
                 document.getElementById('screen-game').classList.add('hidden');
-                document.getElementById('lobby-info').innerText = "Đang đợi mọi người... ✨";
-                showScreen('screen-lobby'); 
-                document.getElementById('btn-start').classList.add('hidden'); 
+                showScreen('screen-waiting-turn'); 
+
+                // Cập nhật text tiến độ riêng cho màn hình này nếu bạn có element đó
+                const waitProgress = document.getElementById('waiting-progress-text');
+                if (waitProgress) {
+                    const total = Object.keys(data.players).length;
+                    const done = data.submitted[serverRound] ? Object.keys(data.submitted[serverRound]).length : 0;
+                    waitProgress.innerText = `Đã xong ${done}/${total} người...`;
+                }
             } else if (serverRound > lastSeenRound) {
                 lastSeenRound = serverRound;
                 setupTurn(data);
             }
         } 
         else if (data.status === "showcase") {
-            // SỬA TẠI ĐÂY: Gọi renderShowcase liên tục để đồng bộ theo showcaseState
-            // Điều này giúp khách nhìn thấy từng bước nhảy ra khi Host bấm nút
+            // Giữ nguyên logic render Showcase
             renderShowcase(data);
         }
     });
 }
-
+        
         window.startGame = async function() {
     const snapshot = await get(ref(db, `rooms/${currentRoom}/players`));
     const players = Object.keys(snapshot.val());
