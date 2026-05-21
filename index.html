@@ -650,29 +650,37 @@ canvas.addEventListener('touchmove', (e) => { e.preventDefault(); draw(e); });
 }
         
        function listenRoom() {
-    onValue(ref(db, `rooms/${currentRoom}`), (snapshot) => {
+    // Lưu lại instance của listener để có thể tắt nếu cần
+    const roomRef = ref(db, `rooms/${currentRoom}`);
+    onValue(roomRef, (snapshot) => {
         const data = snapshot.val();
-        if(!data) return;
+
+        // LOGIC CHỐNG KẸT: Nếu phòng không tồn tại hoặc mình bị "đá" ra khỏi danh sách players
+        if (!data || !data.players || !data.players[myId]) {
+            // Chỉ thực hiện nếu mình vẫn còn đang tưởng là mình ở trong phòng
+            if (currentRoom !== "") {
+                currentRoom = "";
+                isHost = false;
+                document.getElementById('room-display').classList.add('hidden');
+                showScreen('screen-join');
+                // alert("Phòng đã giải tán hoặc bạn đã rời phòng! 🌸");
+            }
+            return;
+        }
 
         checkIfHost(); 
 
-        // 1. Cập nhật danh sách người chơi + Icon trạng thái
+        // 1. Cập nhật danh sách người chơi (giữ nguyên logic render của Henry)
         const pList = document.getElementById('player-list');
         if (pList && data.players) {
             pList.innerHTML = "";
-            
-            // Lấy danh sách những người đã nộp bài ở vòng hiện tại
             const round = data.currentRound;
             const submittedPlayers = (data.submitted && data.submitted[round]) ? data.submitted[round] : {};
-
             const sortedIds = Object.keys(data.players).sort((a, b) => (a === data.host ? -1 : 1));
             
             for(let id of sortedIds) {
                 const isThisPlayerHost = id === data.host;
                 const name = data.players[id].name;
-                
-                // Kiểm tra xem người này đã xong chưa
-                // Nếu đang trong trận (playing), hiển thị tích/x. Nếu đang ở sảnh (waiting), mặc định là icon xinh xắn.
                 let statusIcon = "";
                 if (data.status === "playing") {
                     const hasDone = submittedPlayers[id] === true;
@@ -683,14 +691,13 @@ canvas.addEventListener('touchmove', (e) => { e.preventDefault(); draw(e); });
                     statusIcon = isThisPlayerHost ? '👑' : '🌸';
                 }
 
-                // Thay thế đoạn pList.innerHTML trong hàm listenRoom
-pList.innerHTML += `
-    <li style="display: flex; justify-content: center; align-items: center; gap: 10px; background: white; padding: 10px; margin: 8px 0; border-radius: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.03);">
-        <span style="font-weight: 500;">
-            ${isThisPlayerHost && data.status === "playing" ? '👑 ' : ''}${name} ${id === myId ? '(Bạn)' : ''}
-        </span>
-        ${statusIcon}
-    </li>`;
+                pList.innerHTML += `
+                    <li style="display: flex; justify-content: center; align-items: center; gap: 10px; background: white; padding: 10px; margin: 8px 0; border-radius: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.03);">
+                        <span style="font-weight: 500;">
+                            ${isThisPlayerHost && data.status === "playing" ? '👑 ' : ''}${name} ${id === myId ? '(Bạn)' : ''}
+                        </span>
+                        ${statusIcon}
+                    </li>`;
             }
         }
 
@@ -1199,23 +1206,31 @@ function listenForVotes() {
     if (confirm("Bạn có chắc muốn thoát phòng không? ✨")) {
         showLoading(true);
         try {
-            // Xóa chính mình khỏi danh sách người chơi
-            await remove(ref(db, `rooms/${currentRoom}/players/${myId}`));
+            const snapshot = await get(ref(db, `rooms/${currentRoom}/players`));
+            const players = snapshot.val() || {};
+            const playerIds = Object.keys(players);
 
-            // Nếu mình là Host, hãy tạm thời xóa node host để máy người khác tự nhận diện và truyền ngôi
-            if (isHost) {
-                await remove(ref(db, `rooms/${currentRoom}/host`));
+            if (playerIds.length <= 1) {
+                // Nếu mình là người cuối cùng, xóa toàn bộ phòng luôn
+                await remove(ref(db, `rooms/${currentRoom}`));
+            } else {
+                // Nếu còn người khác, chỉ xóa bản thân
+                await remove(ref(db, `rooms/${currentRoom}/players/${myId}`));
+                if (isHost) {
+                    await remove(ref(db, `rooms/${currentRoom}/host`));
+                }
             }
 
-            // Dọn dẹp màn hình
+            // Dọn dẹp Local (Quan trọng: Phải reset sạch trạng thái)
             currentRoom = "";
+            myId = "";
             isHost = false;
             document.getElementById('room-display').classList.add('hidden');
             localStorage.removeItem('sweetie_room');
             showScreen('screen-join');
             
         } catch (error) {
-            console.error(error);
+            console.error("Lỗi khi thoát:", error);
         } finally {
             showLoading(false);
         }
