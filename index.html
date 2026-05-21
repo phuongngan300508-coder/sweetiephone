@@ -389,16 +389,11 @@
     <!-- MÀN HÌNH 2.5: ĐỢI MỌI NGƯỜI NỘP BÀI (Khác với sảnh chờ chính) -->
 <div id="screen-waiting-turn" class="app-card hidden">
     <div class="loader" style="margin: 0 auto 15px auto;"></div>
-    <h3 style="color: var(--pink-dark);">Đã gửi tác phẩm! ✨</h3>
-    <p style="color: #888; font-size: 0.9rem;">Tác phẩm của bạn đang được giữ bí mật. Đợi bạn bè một chút nhé...</p>
+    <h3 style="color: var(--pink-dark);">Đang đợi mọi người... ✨</h3>
+    <p style="color: #888; font-size: 0.8rem;">Bạn đã xong rồi, hãy xem ai chưa nộp nhé:</p>
     
-    <div style="background: rgba(255,255,255,0.5); padding: 15px; border-radius: 20px; margin-top: 15px; border: 1px dashed var(--pink-main);">
-        <p style="margin: 0; color: #d63384; font-weight: bold;">Tiến độ hiện tại:</p>
-        <div id="waiting-progress-text" style="font-size: 1.5rem; margin: 10px 0;">0/0</div>
-        <div id="waiting-player-status-list" style="font-size: 0.8rem; text-align: left; display: grid; grid-template-columns: 1fr 1fr; gap: 5px;">
-            <!-- Danh sách con người đã/chưa xong sẽ hiện ở đây -->
-        </div>
-    </div>
+    <!-- Danh sách người chơi kèm tích xanh/x đỏ sẽ render vào đây -->
+    <ul id="waiting-player-list" style="list-style:none; padding:0;"></ul>
 </div>
     
     <!-- MÀN HÌNH 3: CHƠI GAME -->
@@ -692,17 +687,18 @@ canvas.addEventListener('touchmove', (e) => { e.preventDefault(); draw(e); });
         checkIfHost(); 
 
         // 1. Cập nhật danh sách người chơi (Giữ nguyên logic render của Henry)
-        const pList = document.getElementById('player-list');
-        if (pList && data.players) {
-            pList.innerHTML = "";
+        // Chúng ta sẽ render vào cả 2 list: sảnh chính (player-list) và sảnh chờ nộp bài (waiting-player-list)
+        const updateLists = () => {
             const round = data.currentRound;
             const submittedPlayers = (data.submitted && data.submitted[round]) ? data.submitted[round] : {};
             const sortedIds = Object.keys(data.players).sort((a, b) => (a === data.host ? -1 : 1));
             
+            let htmlContent = "";
             for(let id of sortedIds) {
                 const isThisPlayerHost = id === data.host;
                 const name = data.players[id].name;
                 let statusIcon = "";
+                
                 if (data.status === "playing") {
                     const hasDone = submittedPlayers[id] === true;
                     statusIcon = hasDone 
@@ -712,7 +708,7 @@ canvas.addEventListener('touchmove', (e) => { e.preventDefault(); draw(e); });
                     statusIcon = isThisPlayerHost ? '👑' : '🌸';
                 }
 
-                pList.innerHTML += `
+                htmlContent += `
                     <li style="display: flex; justify-content: center; align-items: center; gap: 10px; background: white; padding: 10px; margin: 8px 0; border-radius: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.03);">
                         <span style="font-weight: 500;">
                             ${isThisPlayerHost && data.status === "playing" ? '👑 ' : ''}${name} ${id === myId ? '(Bạn)' : ''}
@@ -720,7 +716,17 @@ canvas.addEventListener('touchmove', (e) => { e.preventDefault(); draw(e); });
                         ${statusIcon}
                     </li>`;
             }
-        }
+
+            // Đổ dữ liệu vào list sảnh chính
+            const pList = document.getElementById('player-list');
+            if (pList) pList.innerHTML = htmlContent;
+
+            // Đổ dữ liệu vào list chờ nộp bài (nếu màn hình đó đang hiện)
+            const wList = document.getElementById('waiting-player-list');
+            if (wList) wList.innerHTML = htmlContent;
+        };
+
+        if (data.players) updateLists();
 
         // 2. Cập nhật bộ đếm tiến độ (Giữ nguyên logic)
         const counter = document.getElementById('progress-counter');
@@ -740,14 +746,11 @@ canvas.addEventListener('touchmove', (e) => { e.preventDefault(); draw(e); });
         // 3. Logic chuyển trạng thái và vòng chơi
         if (data.status === "waiting") {
             lastSeenRound = 0; 
-            
-            // Logic reset vote cá nhân: Giữ nguyên 100%
             for (let key in localStorage) {
                 if (key.startsWith('voted_') || key.startsWith('processed_votes_')) {
                     localStorage.removeItem(key);
                 }
             }
-            
             document.getElementById('lobby-info').innerText = "Phòng Chờ";
             showScreen('screen-lobby');
             if (isHost) document.getElementById('btn-start').classList.remove('hidden');
@@ -757,12 +760,10 @@ canvas.addEventListener('touchmove', (e) => { e.preventDefault(); draw(e); });
             const hasSubmitted = data.submitted && data.submitted[serverRound] && data.submitted[serverRound][myId];
 
             if (hasSubmitted) {
-                // CHỈNH SỬA TẠI ĐÂY: Chuyển sang màn hình chờ nộp bài (screen-waiting-turn)
-                // thay vì quay lại screen-lobby của sảnh game
+                // CHUYỂN SANG MÀN HÌNH CHỜ NỘP BÀI RIÊNG
                 document.getElementById('screen-game').classList.add('hidden');
                 showScreen('screen-waiting-turn'); 
 
-                // Cập nhật text tiến độ riêng cho màn hình này nếu bạn có element đó
                 const waitProgress = document.getElementById('waiting-progress-text');
                 if (waitProgress) {
                     const total = Object.keys(data.players).length;
@@ -775,7 +776,6 @@ canvas.addEventListener('touchmove', (e) => { e.preventDefault(); draw(e); });
             }
         } 
         else if (data.status === "showcase") {
-            // Giữ nguyên logic render Showcase
             renderShowcase(data);
         }
     });
