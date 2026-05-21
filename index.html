@@ -602,39 +602,57 @@ canvas.addEventListener('touchmove', (e) => { e.preventDefault(); draw(e); });
     });
 };
 
-        async function checkIfHost() {
+       async function checkIfHost() {
     const snapshot = await get(ref(db, `rooms/${currentRoom}/host`));
-    const hostId = snapshot.val();
+    let hostId = snapshot.val();
 
-    // Nếu phòng chưa có Host, hoặc Host cũ không còn trong danh sách players
+    // Lấy danh sách người chơi thực tế đang có trong phòng
     const playersSnap = await get(ref(db, `rooms/${currentRoom}/players`));
     const players = playersSnap.val() || {};
+    const playerIds = Object.keys(players);
 
+    // LOGIC TRUYỀN NGÔI:
+    // Nếu chưa có Host HOẶC Host hiện tại không còn nằm trong danh sách người chơi
     if (!hostId || !players[hostId]) {
-        await set(ref(db, `rooms/${currentRoom}/host`), myId);
-        isHost = true;
-        document.getElementById('btn-start').classList.remove('hidden');
-    } else {
-        isHost = (hostId === myId);
-        if (isHost) {
-            document.getElementById('btn-start').classList.remove('hidden');
-        } else {
-            document.getElementById('btn-start').classList.add('hidden');
+        if (playerIds.length > 0) {
+            // Sắp xếp theo joinedAt để tìm người vào sớm nhất còn lại
+            playerIds.sort((a, b) => players[a].joinedAt - players[b].joinedAt);
+            const nextHostId = playerIds[0];
+            
+            await set(ref(db, `rooms/${currentRoom}/host`), nextHostId);
+            hostId = nextHostId;
         }
     }
-}
 
+    // Cập nhật trạng thái Host cho bản thân
+    isHost = (hostId === myId);
+    
+    // Ẩn/Hiện nút Bắt đầu dựa trên quyền mới
+    const btnStart = document.getElementById('btn-start');
+    if (btnStart) {
+        if (isHost) btnStart.classList.remove('hidden');
+        else btnStart.classList.add('hidden');
+    }
+}
+        
        function listenRoom() {
     onValue(ref(db, `rooms/${currentRoom}`), (snapshot) => {
         const data = snapshot.val();
         if(!data) return;
 
-        // 1. Cập nhật danh sách người chơi (giữ nguyên)
+        // MỖI KHI CÓ THAY ĐỔI, KIỂM TRA LẠI QUYỀN CHỦ PHÒNG
+        checkIfHost(); 
+
+        // 1. Cập nhật danh sách người chơi
         const pList = document.getElementById('player-list');
-        if (pList) {
+        if (pList && data.players) {
             pList.innerHTML = "";
-            for(let id in data.players) {
-                pList.innerHTML += `<li>🌸 ${data.players[id].name} ${id === myId ? '(Bạn)' : ''}</li>`;
+            // Sắp xếp danh sách hiển thị để Host luôn nằm đầu cho dễ nhìn
+            const sortedIds = Object.keys(data.players).sort((a, b) => (a === data.host ? -1 : 1));
+            
+            for(let id of sortedIds) {
+                const isThisPlayerHost = id === data.host;
+                pList.innerHTML += `<li>${isThisPlayerHost ? '👑' : '🌸'} ${data.players[id].name} ${id === myId ? '(Bạn)' : ''}</li>`;
             }
         }
 
@@ -1138,55 +1156,29 @@ function listenForVotes() {
     });
 }
 
-        // Hàm thoát phòng với logic chuyển quyền Host
-window.leaveRoom = async function() {
+       window.leaveRoom = async function() {
     if (!currentRoom || !myId) return;
 
     if (confirm("Bạn có chắc muốn thoát phòng không? ✨")) {
         showLoading(true);
-
         try {
-            // 1. Lấy danh sách người chơi hiện tại để tính toán chuyển Host
-            const snapshot = await get(ref(db, `rooms/${currentRoom}`));
-            const data = snapshot.val();
-            
-            if (data && data.players) {
-                const playerIds = Object.keys(data.players);
-                
-                // 2. Nếu mình là Host và có người khác trong phòng
-                if (isHost && playerIds.length > 1) {
-                    // Tìm người vào phòng sớm thứ 2 (dựa trên joinedAt hoặc index)
-                    const otherPlayers = playerIds.filter(id => id !== myId);
-                    // Sắp xếp theo thời gian tham gia (nếu có lưu joinedAt) hoặc lấy người đầu tiên còn lại
-                    const nextHostId = otherPlayers[0]; 
-                    
-                    // Chuyển quyền Host cho người tiếp theo
-                    await set(ref(db, `rooms/${currentRoom}/host`), nextHostId);
-                }
-                
-                // 3. Nếu mình là người cuối cùng rời phòng, Firebase sẽ tự động để node trống
-                // hoặc Henry có thể xóa hẳn node host nếu playerIds.length === 1
-                if (playerIds.length === 1) {
-                    await remove(ref(db, `rooms/${currentRoom}/host`));
-                }
-            }
-
-            // 4. Xóa chính mình khỏi danh sách người chơi
+            // Xóa chính mình khỏi danh sách người chơi
             await remove(ref(db, `rooms/${currentRoom}/players/${myId}`));
 
-            // 5. Dọn dẹp trạng thái Local và về màn hình Đăng nhập
+            // Nếu mình là Host, hãy tạm thời xóa node host để máy người khác tự nhận diện và truyền ngôi
+            if (isHost) {
+                await remove(ref(db, `rooms/${currentRoom}/host`));
+            }
+
+            // Dọn dẹp màn hình
             currentRoom = "";
-            myId = "";
             isHost = false;
             document.getElementById('room-display').classList.add('hidden');
-            localStorage.removeItem('sweetie_room'); // Xóa lưu phòng để không tự vào lại
-            
+            localStorage.removeItem('sweetie_room');
             showScreen('screen-join');
-            alert("Đã thoát phòng thành công! ✨");
-
+            
         } catch (error) {
-            console.error("Lỗi khi thoát phòng:", error);
-            alert("Có lỗi xảy ra, thử lại sau nhé! 😰");
+            console.error(error);
         } finally {
             showLoading(false);
         }
