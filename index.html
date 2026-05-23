@@ -489,6 +489,15 @@
 </style>
 </head>
 <body>
+
+     <!-- Thanh Emote nổi -->
+<div id="emote-control-bar" class="emote-bar hidden">
+    <div class="emote-btn" onclick="sendEmote('💖')">💖</div>
+    <div class="emote-btn" onclick="sendEmote('😭')">😭</div>
+    <div class="emote-btn" onclick="sendEmote('😂')">😂</div>
+    <div class="emote-btn" onclick="sendEmote('🔥')">🔥</div>
+</div>
+    
     <!-- MÀN HÌNH LOADING -->
 <div id="screen-loading">
     <div class="loader"></div>
@@ -696,14 +705,7 @@
         <button onclick="openShop(false)" class="btn-close-shop" style="margin-top: 10px;">Để sau nha 🌸</button>
     </div>
 </div>
-
-    <!-- Thanh Emote nổi -->
-<div id="emote-control-bar" class="emote-bar hidden">
-    <div class="emote-btn" onclick="sendEmote('💖')">💖</div>
-    <div class="emote-btn" onclick="sendEmote('😭')">😭</div>
-    <div class="emote-btn" onclick="sendEmote('😂')">😂</div>
-    <div class="emote-btn" onclick="sendEmote('🔥')">🔥</div>
-</div>
+    
     <!-- FIREBASE SDK (Dùng bản CDN để chạy ngay không cần cài đặt) -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-app.js";
