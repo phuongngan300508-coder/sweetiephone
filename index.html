@@ -341,6 +341,26 @@
     margin: 2px;
     transition: all 0.3s ease;
 }
+
+        .canvas-tools {
+    display: flex;
+    gap: 10px;
+    margin-top: 10px;
+}
+.tool-btn {
+    flex: 1;
+    padding: 8px !important;
+    font-size: 0.8rem !important;
+    background: #f0f0f0;
+    color: #666;
+    border-radius: 12px;
+    border: 2px solid transparent;
+}
+.tool-btn.active {
+    background: var(--pink-main);
+    color: var(--pink-dark);
+    border-color: var(--pink-dark);
+}
 </style>
 </head>
 <body>
@@ -406,10 +426,14 @@
         </div>
 
         <!-- Khu vực Vẽ -->
-        <div id="area-draw" class="hidden">
-            <canvas id="drawCanvas" width="300" height="300"></canvas>
-            <button onclick="clearCanvas()" style="background:#eee; color:#666; font-size: 0.8rem;">Xóa vẽ lại ↩️</button>
-        </div>
+<div id="area-draw" class="hidden">
+    <canvas id="drawCanvas" width="300" height="300"></canvas>
+    <div class="canvas-tools">
+        <button id="tool-pencil" class="tool-btn active" onclick="setTool('pencil')">✏️ Bút</button>
+        <button id="tool-eraser" class="tool-btn" onclick="setTool('eraser')">🧽 Gôm</button>
+        <button class="tool-btn" onclick="clearCanvas()" style="background: #ffebee;">🗑️ Xóa hết</button>
+    </div>
+</div>
 
         <button onclick="submitTurn()">GỬI ĐI ✨</button>
     </div>
@@ -530,6 +554,7 @@ let isHost = false;
 let playerOrder = [];
 let myChainOwnerId = "";
 let lastSeenRound = 0; // Thêm dòng này để theo dõi vòng hiện tại
+let currentTool = 'pencil'; // Mặc định là bút vẽ
         
 
         // XỬ LÝ VẼ CANVAS
@@ -542,9 +567,13 @@ let lastSeenRound = 0; // Thêm dòng này để theo dõi vòng hiện tại
         function draw(e) {
     if (!painting) return;
     
-    ctx.lineWidth = 4;
+    ctx.lineWidth = currentTool === 'eraser' ? 20 : 4; // Gôm thì nét to hơn cho dễ xóa
     ctx.lineCap = 'round';
-    ctx.strokeStyle = '#FF85A2';
+    ctx.lineJoin = 'round';
+    
+    // Nếu là gôm, dùng chế độ xóa 'destination-out' hoặc vẽ màu trắng/màu nền
+    // Ở đây dùng màu nền trắng của canvas để "xóa" giả lập cho mượt
+    ctx.strokeStyle = currentTool === 'eraser' ? '#FFFFFF' : '#FF85A2';
 
     const rect = canvas.getBoundingClientRect();
     let x, y;
@@ -633,6 +662,13 @@ canvas.addEventListener('touchmove', (e) => { e.preventDefault(); draw(e); });
     });
 };
 
+        window.setTool = function(tool) {
+    currentTool = tool;
+    // Cập nhật giao diện nút bấm
+    document.getElementById('tool-pencil').classList.toggle('active', tool === 'pencil');
+    document.getElementById('tool-eraser').classList.toggle('active', tool === 'eraser');
+};
+        
        async function checkIfHost() {
     const snapshot = await get(ref(db, `rooms/${currentRoom}/host`));
     let hostId = snapshot.val();
