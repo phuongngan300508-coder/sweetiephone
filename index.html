@@ -448,63 +448,9 @@
     background-color: #FFDEE9;
     transition: 0.2s;
 }
-
-        /* Animation cho Emote bay */
-.floating-emote {
-    position: fixed;
-    bottom: 20px;
-    font-size: 2rem;
-    pointer-events: none;
-    z-index: 9999;
-    animation: floatUp 3s ease-out forwards;
-}
-
-@keyframes floatUp {
-    0% { transform: translateY(0) translateX(0) scale(0.5); opacity: 1; }
-    100% { transform: translateY(-400px) translateX(calc(Math.random() * 100px - 50px)) scale(1.5); opacity: 0; }
-}
-
-/* Sửa lại đoạn này trong <style> */
-.emote-bar {
-    position: fixed;
-    bottom: 20px;
-    left: 50%;
-    transform: translateX(-50%);
-    display: flex !important; /* Thêm !important ở đây */
-    gap: 15px;
-    background: var(--glass);
-    backdrop-filter: blur(10px);
-    padding: 10px 20px;
-    border-radius: 30px;
-    border: 2px solid white;
-    z-index: 1000;
-    transition: opacity 0.3s, visibility 0.3s;
-}
-
-/* Thêm class này để ẩn mượt mà hơn */
-.emote-bar.hidden {
-    display: none !important;
-}
-        
-.emote-btn {
-    font-size: 1.5rem;
-    cursor: pointer;
-    transition: 0.2s;
-    user-select: none;
-}
-.emote-btn:active { transform: scale(1.3); }
 </style>
 </head>
 <body>
-
-     <!-- Thanh Emote nổi -->
-<div id="emote-control-bar" class="emote-bar hidden">
-    <div class="emote-btn" onclick="sendEmote('💖')">💖</div>
-    <div class="emote-btn" onclick="sendEmote('😭')">😭</div>
-    <div class="emote-btn" onclick="sendEmote('😂')">😂</div>
-    <div class="emote-btn" onclick="sendEmote('🔥')">🔥</div>
-</div>
-    
     <!-- MÀN HÌNH LOADING -->
 <div id="screen-loading">
     <div class="loader"></div>
@@ -712,7 +658,6 @@
         <button onclick="openShop(false)" class="btn-close-shop" style="margin-top: 10px;">Để sau nha 🌸</button>
     </div>
 </div>
-    
     <!-- FIREBASE SDK (Dùng bản CDN để chạy ngay không cần cài đặt) -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-app.js";
@@ -1603,65 +1548,6 @@ window.getRandomPrompt = function() {
         // Hiệu ứng rung nhẹ cho input để biết đã đổi
         input.style.transform = "scale(1.05)";
         setTimeout(() => input.style.transform = "scale(1)", 200);
-    }
-};
-
-        // --- LOGIC EMOTE THẢ NỔI ---
-
-// Hàm hiển thị emote lên màn hình cục bộ
-function spawnEmote(emoji) {
-    const el = document.createElement('div');
-    el.className = 'floating-emote';
-    el.innerText = emoji;
-    // Ngẫu nhiên vị trí ngang một chút cho giống livestream
-    el.style.left = (45 + Math.random() * 10) + "%"; 
-    document.body.appendChild(el);
-    
-    // Tự xóa sau khi animation kết thúc
-    setTimeout(() => el.remove(), 3000);
-}
-
-// Gửi emote lên Firebase
-window.sendEmote = function(emoji) {
-    if (!currentRoom) return;
-    const emoteRef = ref(db, `rooms/${currentRoom}/emotes`);
-    set(emoteRef, {
-        emoji: emoji,
-        sender: myId,
-        time: Date.now()
-    });
-};
-
-// Lắng nghe emote từ Firebase
-function listenEmotes() {
-    onValue(ref(db, `rooms/${currentRoom}/emotes`), (snapshot) => {
-        const data = snapshot.val();
-        if (data && data.time > Date.now() - 5000) { // Chỉ hiện emote mới trong 5s qua
-            spawnEmote(data.emoji);
-        }
-    });
-}
-
-// Cập nhật hàm showScreen của Henry để ẩn/hiện thanh emote đúng lúc
-const originalShowScreen = window.showScreen;
-// Thay thế toàn bộ đoạn showScreen cũ bằng đoạn này ở cuối <script>
-window.showScreen = function(id) {
-    // 1. Ẩn/Hiện tất cả các màn hình chính
-    document.querySelectorAll('.app-card').forEach(s => s.classList.add('hidden'));
-    const targetScreen = document.getElementById(id);
-    if (targetScreen) targetScreen.classList.remove('hidden');
-
-    // 2. Logic riêng cho thanh Emote
-    const emoteBar = document.getElementById('emote-control-bar');
-    if (emoteBar) {
-        // Chỉ hiện thanh emote ở màn hình Lobby, Showcase hoặc khi đang đợi nộp bài
-        const activeScreens = ['screen-lobby', 'screen-showcase', 'screen-waiting-turn'];
-        if (activeScreens.includes(id)) {
-            emoteBar.classList.remove('hidden');
-            if (id === 'screen-lobby') listenEmotes(); 
-        } else {
-            emoteBar.classList.add('hidden');
-        }
     }
 };
     </script>
