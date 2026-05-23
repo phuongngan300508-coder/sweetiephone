@@ -686,6 +686,14 @@ let lastSeenRound = 0; // Thêm dòng này để theo dõi vòng hiện tại
 let currentTool = 'pencil'; // Mặc định là bút vẽ
 let currentColor = '#FF85A2'; // Màu mặc định là hồng đậm
 let currentSize = 4;
+let currentDrawingData = []; // Lưu các nét vẽ hiện tại
+let isRecording = false;
+
+// Hàm hỗ trợ ghi lại điểm vẽ
+function recordPoint(x, y, type, color, size) {
+    if (!isRecording) return;
+    currentDrawingData.push({ x, y, type, color, size, time: Date.now() });
+}
         
 
         // XỬ LÝ VẼ CANVAS
@@ -694,8 +702,9 @@ let currentSize = 4;
         let painting = false;
 
         function startPaint(e) { painting = true; draw(e); }
-        function endPaint() { painting = false; ctx.beginPath(); }
-        function draw(e) {
+        function endPaint() { painting = false; ctx.beginPath(); } 
+
+function draw(e) {
     if (!painting) return;
     
     // Gôm sẽ to gấp đôi nét bút bình thường để xóa cho nhanh, hoặc Henry có thể để bằng nhau tùy ý
@@ -722,22 +731,44 @@ let currentSize = 4;
     const scaleX = canvas.width / rect.width;
     const scaleY = canvas.height / rect.height;
     
-    ctx.lineTo(x * scaleX, y * scaleY);
+    const finalX = x * scaleX;
+    const finalY = y * scaleY;
+
+    // Ghi lại dữ liệu tọa độ cho Replay
+    currentDrawingData.push({
+        x: finalX,
+        y: finalY,
+        t: currentTool,
+        c: currentColor,
+        s: currentSize
+    });
+
+    ctx.lineTo(finalX, finalY);
     ctx.stroke();
     ctx.beginPath();
-    ctx.moveTo(x * scaleX, y * scaleY);
+    ctx.moveTo(finalX, finalY);
 }
 
-        canvas.addEventListener('mousedown', (e) => { painting = true; draw(e); });
+canvas.addEventListener('mousedown', (e) => { 
+    painting = true; 
+    // Đánh dấu điểm bắt đầu nét mới để Replay không bị nối nét lung tung
+    currentDrawingData.push({ type: 'start' }); 
+    draw(e); 
+});
 canvas.addEventListener('mouseup', endPaint);
 canvas.addEventListener('mouseleave', endPaint); // Thêm cái này để khi chuột ra ngoài canvas sẽ ngừng vẽ
 canvas.addEventListener('mousemove', draw);
 
 // Giữ nguyên cho điện thoại như bạn yêu cầu
-canvas.addEventListener('touchstart', (e) => { e.preventDefault(); painting = true; draw(e); });
+canvas.addEventListener('touchstart', (e) => { 
+    e.preventDefault(); 
+    painting = true; 
+    currentDrawingData.push({ type: 'start' });
+    draw(e); 
+});
 canvas.addEventListener('touchend', endPaint);
 canvas.addEventListener('touchmove', (e) => { e.preventDefault(); draw(e); });
-
+        
         window.clearCanvas = () => ctx.clearRect(0, 0, canvas.width, canvas.height);
 
         // LOGIC GAME
@@ -1056,7 +1087,7 @@ window.handleCustomColor = function(colorValue) {
     }
 }
 
-       window.submitTurn = async function() {
+      window.submitTurn = async function() {
     const isWriteMode = !document.getElementById('area-write').classList.contains('hidden');
     let value = isWriteMode ? document.getElementById('input-phrase').value : canvas.toDataURL();
     
@@ -1076,9 +1107,14 @@ window.handleCustomColor = function(colorValue) {
     // 2. Lưu bài nộp vào chuỗi (chains)
     await set(ref(db, `rooms/${currentRoom}/chains/${myChainOwnerId}/round_${round}`), {
         content: value,
+        // THÊM DÒNG NÀY: Lưu dữ liệu nét vẽ nếu đang ở chế độ vẽ
+        drawingSteps: isWriteMode ? null : JSON.stringify(currentDrawingData),
         authorName: document.getElementById('input-name').value,
         authorId: myId
     });
+
+    // Sau khi gửi, xóa dữ liệu vẽ tạm thời để chuẩn bị cho lượt sau
+    if(!isWriteMode) currentDrawingData = [];
 
     // 3. Đánh dấu trạng thái đã nộp
     await set(ref(db, `rooms/${currentRoom}/submitted/${round}/${myId}`), true);
@@ -1188,8 +1224,12 @@ function renderShowcase(data) {
                 <small style="color: #888; font-size: 0.7rem;">${step.authorName} ${label}:</small>
                 <div style="margin-top: 5px;">
                     ${step.content.startsWith('data:image') 
-                        ? `<img src="${step.content}" style="width: 100%; border-radius: 10px;">` 
-                        : `<p style="font-weight: bold; color: #d63384; margin: 0; font-size: 1.1rem;">"${step.content}"</p>`}
+    ? `
+    <canvas id="replay-${i}" width="300" height="300" style="width: 100%; border-radius: 10px; background: white;"></canvas>
+    <button onclick="runReplay('replay-${i}', '${step.drawingSteps.replace(/'/g, "\\'")}')" 
+            style="background: #A29BFE; font-size: 0.7rem; padding: 5px; margin-top: 5px;">🎬 Xem quá trình vẽ</button>
+    ` 
+    : `<p style="font-weight: bold; color: #d63384; margin: 0; font-size: 1.1rem;">"${step.content}"</p>`}
                 </div>
             </div>`;
     }
@@ -1549,6 +1589,36 @@ window.getRandomPrompt = function() {
         input.style.transform = "scale(1.05)";
         setTimeout(() => input.style.transform = "scale(1)", 200);
     }
+};
+
+        window.runReplay = function(canvasId, stepsJson) {
+    const steps = JSON.parse(stepsJson);
+    const replayCanvas = document.getElementById(canvasId);
+    if (!replayCanvas) return;
+    const rCtx = replayCanvas.getContext('2d');
+    rCtx.clearRect(0, 0, replayCanvas.width, replayCanvas.height);
+    
+    let i = 0;
+    function nextFrame() {
+        if (i >= steps.length) return;
+        
+        const point = steps[i];
+        rCtx.lineWidth = point.type === 'eraser' ? point.size * 2 : point.size;
+        rCtx.lineCap = 'round';
+        rCtx.strokeStyle = point.type === 'eraser' ? '#FFFFFF' : point.color;
+
+        if (point.type === 'start' || i === 0) {
+            rCtx.beginPath();
+            rCtx.moveTo(point.x, point.y);
+        } else {
+            rCtx.lineTo(point.x, point.y);
+            rCtx.stroke();
+        }
+        
+        i += 2; // Tăng tốc độ replay bằng cách nhảy bước (tăng số này để nhanh hơn)
+        requestAnimationFrame(nextFrame);
+    }
+    nextFrame();
 };
     </script>
 </body>
