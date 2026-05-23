@@ -428,12 +428,21 @@
         <!-- Khu vực Vẽ -->
 <div id="area-draw" class="hidden">
     <canvas id="drawCanvas" width="300" height="300"></canvas>
+    
+    <!-- Bảng màu ngọt ngào -->
+    <div class="color-picker">
+        <div class="color-dot active" style="background: #FF85A2;" onclick="setColor('#FF85A2', this)"></div> <!-- Hồng Sweetie -->
+        <div class="color-dot" style="background: #FFD700;" onclick="setColor('#FFD700', this)"></div> <!-- Vàng -->
+        <div class="color-dot" style="background: #4CAF50;" onclick="setColor('#4CAF50', this)"></div> <!-- Xanh lá -->
+        <div class="color-dot" style="background: #2196F3;" onclick="setColor('#2196F3', this)"></div> <!-- Xanh dương -->
+        <div class="color-dot" style="background: #333333;" onclick="setColor('#333333', this)"></div> <!-- Đen -->
+    </div>
+
     <div class="canvas-tools">
         <button id="tool-pencil" class="tool-btn active" onclick="setTool('pencil')">✏️ Bút</button>
         <button id="tool-eraser" class="tool-btn" onclick="setTool('eraser')">🧽 Gôm</button>
         <button class="tool-btn" onclick="clearCanvas()" style="background: #ffebee;">🗑️ Xóa hết</button>
     </div>
-</div>
 
         <button onclick="submitTurn()">GỬI ĐI ✨</button>
     </div>
@@ -555,6 +564,7 @@ let playerOrder = [];
 let myChainOwnerId = "";
 let lastSeenRound = 0; // Thêm dòng này để theo dõi vòng hiện tại
 let currentTool = 'pencil'; // Mặc định là bút vẽ
+let currentColor = '#FF85A2'; // Màu mặc định là hồng đậm
         
 
         // XỬ LÝ VẼ CANVAS
@@ -567,13 +577,12 @@ let currentTool = 'pencil'; // Mặc định là bút vẽ
         function draw(e) {
     if (!painting) return;
     
-    ctx.lineWidth = currentTool === 'eraser' ? 20 : 4; // Gôm thì nét to hơn cho dễ xóa
+    ctx.lineWidth = currentTool === 'eraser' ? 25 : 4; // Tăng nhẹ size gôm cho sướng tay
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
     
-    // Nếu là gôm, dùng chế độ xóa 'destination-out' hoặc vẽ màu trắng/màu nền
-    // Ở đây dùng màu nền trắng của canvas để "xóa" giả lập cho mượt
-    ctx.strokeStyle = currentTool === 'eraser' ? '#FFFFFF' : '#FF85A2';
+    // Logic chọn màu: Gôm = Trắng, Bút = currentColor
+    ctx.strokeStyle = currentTool === 'eraser' ? '#FFFFFF' : currentColor;
 
     const rect = canvas.getBoundingClientRect();
     let x, y;
@@ -667,6 +676,18 @@ canvas.addEventListener('touchmove', (e) => { e.preventDefault(); draw(e); });
     // Cập nhật giao diện nút bấm
     document.getElementById('tool-pencil').classList.toggle('active', tool === 'pencil');
     document.getElementById('tool-eraser').classList.toggle('active', tool === 'eraser');
+};
+
+        window.setColor = function(color, el) {
+    currentColor = color;
+    currentTool = 'pencil'; // Tự động chuyển về bút khi chọn màu mới
+    
+    // Cập nhật UI cho các nút
+    setTool('pencil');
+    
+    // Cập nhật UI cho các ô màu
+    document.querySelectorAll('.color-dot').forEach(dot => dot.classList.remove('active'));
+    el.classList.add('active');
 };
         
        async function checkIfHost() {
