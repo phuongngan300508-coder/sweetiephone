@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Sweetie Phone 🎀</title>
   <link rel="manifest" href="manifest.json">
+    <!-- Thêm thư viện chụp ảnh màn hình vào trước script của bạn -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <style>
     :root {
         --pink-main: #FFC1CC;
@@ -536,9 +538,15 @@
 <div id="screen-showcase" class="app-card hidden">
     <div class="candy-balance">🍬 <span class="candy-value">0</span></div>
     <h2 style="color: var(--pink-dark);">Triển lãm tác phẩm 🎨</h2>
-    <div id="showcase-content" style="max-height: 60vh; overflow-y: auto; margin-bottom: 10px;"></div>
     
-    <!-- Nút này sẽ được ẩn/hiện dựa trên quyền Host -->
+    <!-- Chúng ta sẽ chụp ảnh toàn bộ vùng này -->
+    <div id="capture-area" style="background: linear-gradient(135deg, #FFF0F5 0%, #FFDEE9 100%); padding: 15px; border-radius: 20px;">
+        <div id="showcase-content" style="max-height: 60vh; overflow-y: auto; margin-bottom: 10px;"></div>
+    </div>
+    
+    <!-- Nút chia sẻ/lưu toàn bộ -->
+    <button onclick="shareFullShowcase()" style="background: #6C5CE7; margin-bottom: 10px;">📸 Lưu toàn bộ triển lãm</button>
+    
     <button id="btn-restart" class="hidden" onclick="restartGame()">Chơi ván mới 🔄</button>
 </div>
 
@@ -1448,6 +1456,40 @@ function listenForVotes() {
             showLoading(false);
         }
     }
+};
+
+        window.shareFullShowcase = function() {
+    const area = document.getElementById('capture-area');
+    const btn = event.target;
+    
+    // Đổi chữ nút bấm để người dùng đợi
+    const originalText = btn.innerText;
+    btn.innerText = "Đang tạo ảnh... ✨";
+    btn.disabled = true;
+
+    // Chụp ảnh vùng capture-area
+    html2canvas(area, {
+        useCORS: true, // Cho phép lấy ảnh từ Firebase
+        scale: 2,      // Tăng chất lượng ảnh (x2 sắc nét)
+        backgroundColor: "#FFF0F5" // Màu nền cho ảnh
+    }).then(canvas => {
+        // Tạo liên kết tải về
+        const link = document.createElement('a');
+        link.download = `sweetie_memory_${Date.now()}.png`;
+        link.href = canvas.toDataURL("image/png");
+        link.click();
+
+        // Trả lại trạng thái nút
+        btn.innerText = originalText;
+        btn.disabled = false;
+        
+        alert("Đã lưu toàn bộ chuỗi kỷ niệm này về máy bạn! 🎀💖");
+    }).catch(err => {
+        console.error("Lỗi khi chụp ảnh:", err);
+        alert("Có lỗi nhỏ khi tạo ảnh, Henry thử lại nhé! 😰");
+        btn.innerText = originalText;
+        btn.disabled = false;
+    });
 };
     </script>
 </body>
