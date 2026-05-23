@@ -442,6 +442,61 @@
     transform: scale(0.95);
     box-shadow: 0 2px 8px rgba(108, 92, 231, 0.2);
 }
+
+        /* Layout chia cột cho máy tính */
+@media (min-width: 768px) {
+    #screen-game.app-card {
+        max-width: 900px; /* Nới rộng card khi ở chế độ chia cột */
+        width: 95%;
+    }
+
+    #screen-game {
+        display: grid;
+        grid-template-columns: 1fr 1fr; /* Chia đôi 2 cột bằng nhau */
+        grid-template-areas: 
+            "header header"
+            "prompt tools"
+            "footer footer";
+        gap: 20px;
+        align-items: start;
+        text-align: left;
+    }
+
+    #prompt-area {
+        grid-area: header;
+        text-align: center;
+        margin-bottom: 10px;
+    }
+
+    /* Cột bên trái: Hiển thị hình ảnh hoặc chữ mô tả của người trước */
+    #area-draw-reference {
+        grid-area: prompt;
+        background: rgba(255, 255, 255, 0.5);
+        padding: 15px;
+        border-radius: 20px;
+        border: 2px dashed var(--pink-main);
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+    }
+
+    /* Cột bên phải: Canvas và các nút công cụ */
+    #draw-main-zone {
+        grid-area: tools;
+    }
+
+    /* Nút Gửi đi nằm dưới cùng trải dài */
+    #screen-game > button {
+        grid-area: footer;
+        margin-top: 10px;
+    }
+
+    /* Chỉnh lại canvas cho vừa khung cột */
+    canvas {
+        height: 350px; /* Tăng chiều cao lên một chút trên PC */
+    }
+}
 </style>
 </head>
 <body>
@@ -498,17 +553,26 @@
 </div>
     
     <!-- MÀN HÌNH 3: CHƠI GAME -->
-    <div id="screen-game" class="app-card hidden">
-        <div id="prompt-area" style="margin-bottom:15px; font-weight:bold; color:#d63384; font-size: 1.2rem;"></div>
-        
-        <!-- Khu vực Viết -->
-        <div id="area-write" class="hidden">
-            <input type="text" id="input-phrase" placeholder="Viết gì đó thật hài hước...">
+<div id="screen-game" class="app-card hidden">
+    <!-- Tiêu đề/Hướng dẫn luôn nằm trên cùng -->
+    <div id="prompt-area"></div>
+    
+    <!-- Khu vực Viết (Vòng 1 hoặc vòng đoán chữ) -->
+    <div id="area-write" class="hidden" style="width: 100%;">
+        <input type="text" id="input-phrase" placeholder="Viết gì đó thật hài hước...">
+    </div>
+
+    <!-- Khu vực Vẽ (Vòng vẽ lại) - CẤU TRÚC CHIA CỘT MỚI -->
+    <div id="area-draw" class="hidden" style="display: contents;">
+        <!-- Cột trái: Tham chiếu (Hình/Chữ của người trước) -->
+        <div id="area-draw-reference">
+            <p style="font-size: 0.8rem; color: #888; margin-bottom: 10px;">Bạn đang vẽ lại:</p>
+            <div id="reference-content"></div>
         </div>
 
-        <!-- Khu vực Vẽ -->
-<div id="area-draw" class="hidden">
-    <canvas id="drawCanvas" width="300" height="300"></canvas>
+        <!-- Cột phải: Bảng vẽ chính -->
+        <div id="draw-main-zone">
+            <canvas id="drawCanvas" width="300" height="300"></canvas>
     
     <!-- Bảng màu ngọt ngào -->
     <div class="color-picker">
@@ -1010,13 +1074,15 @@ window.handleCustomColor = function(colorValue) {
     const { currentRound, playerOrder } = data;
     const myIndex = playerOrder.indexOf(myId);
     
-    // Logic Chain: Xác định bạn đang thực hiện tiếp nội dung cho chuỗi của ai
-    // Công thức này giúp bài viết/hình ảnh xoay vòng đều giữa các người chơi
+    // Logic Chain: Giữ nguyên 100%
     const ownerIndex = (myIndex - (currentRound - 1) + playerOrder.length) % playerOrder.length;
     myChainOwnerId = playerOrder[ownerIndex];
 
     const promptArea = document.getElementById('prompt-area');
-    promptArea.innerHTML = ""; // Xóa sạch nội dung cũ (hình/chữ của vòng trước)
+    const refContent = document.getElementById('reference-content'); // Thêm để đổ dữ liệu vào cột trái
+    
+    promptArea.innerHTML = ""; 
+    if (refContent) refContent.innerHTML = ""; // Xóa nội dung cũ ở khu vực tham chiếu
 
     // Vòng 1 luôn là ghi mô tả khởi đầu
     if (currentRound === 1) {
@@ -1030,7 +1096,14 @@ window.handleCustomColor = function(colorValue) {
 
                 // Nếu vòng hiện tại là số chẵn (2, 4, 6...): Bạn phải VẼ dựa trên mô tả
                 if (currentRound % 2 === 0) {
-                    showDrawArea(`Vẽ lại câu này: "${prevContent}"`);
+                    showDrawArea(`Hãy vẽ lại nội dung bên dưới 🎀`);
+                    // Đổ text vào cột bên trái (máy tính) hoặc phía trên (điện thoại)
+                    if (refContent) {
+                        refContent.innerHTML = `<p style="font-weight: bold; color: #d63384; font-size: 1.1rem; margin: 0;">"${prevContent}"</p>`;
+                    } else {
+                        // Fallback nếu chưa kịp sửa HTML
+                        promptArea.innerText = `Vẽ lại câu này: "${prevContent}"`;
+                    }
                 } 
                 // Nếu vòng hiện tại là số lẻ (3, 5, 7...): Bạn phải ĐOÁN chữ dựa trên hình vẽ
                 else {
