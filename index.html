@@ -427,6 +427,21 @@
     background: var(--pink-dark);
     border-radius: 50%;
 }
+
+        .btn-capture {
+    background: linear-gradient(135deg, #A29BFE 0%, #6C5CE7 100%); /* Màu tím Pastel hiện đại */
+    color: white;
+    font-weight: bold;
+    border: 2px solid rgba(255, 255, 255, 0.5);
+    box-shadow: 0 5px 15px rgba(108, 92, 231, 0.3);
+    transition: 0.3s;
+    margin-bottom: 12px;
+}
+
+.btn-capture:active {
+    transform: scale(0.95);
+    box-shadow: 0 2px 8px rgba(108, 92, 231, 0.2);
+}
 </style>
 </head>
 <body>
@@ -539,15 +554,18 @@
     <div class="candy-balance">🍬 <span class="candy-value">0</span></div>
     <h2 style="color: var(--pink-dark);">Triển lãm tác phẩm 🎨</h2>
     
-    <!-- Chúng ta sẽ chụp ảnh toàn bộ vùng này -->
-    <div id="capture-area" style="background: linear-gradient(135deg, #FFF0F5 0%, #FFDEE9 100%); padding: 15px; border-radius: 20px;">
+    <!-- Vùng chụp ảnh kỷ niệm -->
+    <div id="capture-area" style="background: linear-gradient(135deg, #FFF0F5 0%, #FFDEE9 100%); padding: 15px; border-radius: 20px; border: 2px solid white;">
         <div id="showcase-content" style="max-height: 60vh; overflow-y: auto; margin-bottom: 10px;"></div>
     </div>
     
-    <!-- Nút chia sẻ/lưu toàn bộ -->
-    <button onclick="shareFullShowcase()" style="background: #6C5CE7; margin-bottom: 10px;">📸 Lưu toàn bộ triển lãm</button>
-    
-    <button id="btn-restart" class="hidden" onclick="restartGame()">Chơi ván mới 🔄</button>
+    <div style="margin-top: 15px;">
+        <!-- Nút chụp ảnh đã được đổi màu tím xịn xò -->
+        <button class="btn-capture" onclick="shareFullShowcase()">📸 Chụp ảnh kỷ niệm</button>
+        
+        <!-- Nút Chơi ván mới (thường để màu xanh lá hoặc giữ hồng đậm) -->
+        <button id="btn-restart" class="hidden" onclick="restartGame()" style="background: #4CAF50;">Chơi ván mới 🔄</button>
+    </div>
 </div>
 
     <!-- Popup hướng dẫn chơi phân loại theo số người -->
