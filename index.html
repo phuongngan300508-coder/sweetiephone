@@ -442,6 +442,12 @@
     transform: scale(0.95);
     box-shadow: 0 2px 8px rgba(108, 92, 231, 0.2);
 }
+
+        #area-write div:active {
+    transform: scale(0.9);
+    background-color: #FFDEE9;
+    transition: 0.2s;
+}
 </style>
 </head>
 <body>
@@ -502,9 +508,12 @@
         <div id="prompt-area" style="margin-bottom:15px; font-weight:bold; color:#d63384; font-size: 1.2rem;"></div>
         
         <!-- Khu vực Viết -->
-        <div id="area-write" class="hidden">
-            <input type="text" id="input-phrase" placeholder="Viết gì đó thật hài hước...">
-        </div>
+<div id="area-write" class="hidden">
+    <div onclick="getRandomPrompt()" style="cursor:pointer; font-size: 0.8rem; color: #FF85A2; margin-bottom: 8px; display: inline-block; background: #fff; padding: 5px 12px; border-radius: 15px; border: 1px dashed #FF85A2;">
+        ✨ Bí ý tưởng? Thử gợi ý này!
+    </div>
+    <input type="text" id="input-phrase" placeholder="Viết gì đó thật hài hước...">
+</div>
 
         <!-- Khu vực Vẽ -->
 <div id="area-draw" class="hidden">
@@ -1508,6 +1517,38 @@ function listenForVotes() {
         btn.innerText = originalText;
         btn.disabled = false;
     });
+};
+
+        const sweetiePrompts = [
+    "Pikachu đang ăn bún đậu mắm tôm",
+    "Gojo Satoru đang đi xe buýt số 50",
+    "Stitch đang nhảy múa dưới mưa hồng",
+    "Con mèo béo ú đang tập gym",
+    "Doraemon bị mất túi thần kỳ",
+    "Con thỏ đang cưỡi rồng bay qua Landmark 81",
+    "Paimon bị nấu thành thức ăn dự trữ",
+    "Một quả dâu tây đang tập bơi",
+    "Con gấu trúc đang ăn kem bơ Đà Lạt",
+    "Người nhện đang đi bán vé số"
+];
+
+// Hàm lấy ngẫu nhiên 10 gợi ý và chọn ra 1
+window.getRandomPrompt = function() {
+    // Trộn mảng và lấy 10 cái đầu tiên (nếu mảng của bạn sau này dài hơn)
+    const shuffled = [...sweetiePrompts].sort(() => 0.5 - Math.random());
+    const selected = shuffled.slice(0, 10);
+    
+    // Chọn 1 cái ngẫu nhiên từ 10 cái đó
+    const finalPrompt = selected[Math.floor(Math.random() * selected.length)];
+    
+    // Điền vào input
+    const input = document.getElementById('input-phrase');
+    if (input) {
+        input.value = finalPrompt;
+        // Hiệu ứng rung nhẹ cho input để biết đã đổi
+        input.style.transform = "scale(1.05)";
+        setTimeout(() => input.style.transform = "scale(1)", 200);
+    }
 };
     </script>
 </body>
