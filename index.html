@@ -361,6 +361,29 @@
     color: var(--pink-dark);
     border-color: var(--pink-dark);
 }
+
+        .color-picker {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+    margin-bottom: 15px;
+    background: rgba(255, 255, 255, 0.5);
+    padding: 10px;
+    border-radius: 20px;
+}
+.color-dot {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    border: 3px solid white;
+    cursor: pointer;
+    box-shadow: 0 3px 6px rgba(0,0,0,0.1);
+    transition: 0.2s;
+}
+.color-dot.active {
+    transform: scale(1.2);
+    border-color: var(--pink-dark);
+}
 </style>
 </head>
 <body>
