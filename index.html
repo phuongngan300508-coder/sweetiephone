@@ -464,13 +464,13 @@
     100% { transform: translateY(-400px) translateX(calc(Math.random() * 100px - 50px)) scale(1.5); opacity: 0; }
 }
 
-/* Thanh nút chọn Emote */
+/* Sửa lại đoạn này trong <style> */
 .emote-bar {
     position: fixed;
     bottom: 20px;
     left: 50%;
     transform: translateX(-50%);
-    display: flex;
+    display: flex !important; /* Thêm !important ở đây */
     gap: 15px;
     background: var(--glass);
     backdrop-filter: blur(10px);
@@ -478,7 +478,14 @@
     border-radius: 30px;
     border: 2px solid white;
     z-index: 1000;
+    transition: opacity 0.3s, visibility 0.3s;
 }
+
+/* Thêm class này để ẩn mượt mà hơn */
+.emote-bar.hidden {
+    display: none !important;
+}
+        
 .emote-btn {
     font-size: 1.5rem;
     cursor: pointer;
@@ -1637,19 +1644,25 @@ function listenEmotes() {
 
 // Cập nhật hàm showScreen của Henry để ẩn/hiện thanh emote đúng lúc
 const originalShowScreen = window.showScreen;
+// Thay thế toàn bộ đoạn showScreen cũ bằng đoạn này ở cuối <script>
 window.showScreen = function(id) {
-    const emoteBar = document.getElementById('emote-control-bar');
-    // Chỉ hiện ở màn hình Lobby (Chờ) và Showcase (Triển lãm)
-    if (id === 'screen-lobby' || id === 'screen-showcase') {
-        emoteBar.classList.remove('hidden');
-        if (id === 'screen-lobby') listenEmotes(); // Bắt đầu nghe khi vào sảnh
-    } else {
-        emoteBar.classList.add('hidden');
-    }
-    
-    // Gọi lại hàm showScreen gốc của bạn
+    // 1. Ẩn/Hiện tất cả các màn hình chính
     document.querySelectorAll('.app-card').forEach(s => s.classList.add('hidden'));
-    document.getElementById(id).classList.remove('hidden');
+    const targetScreen = document.getElementById(id);
+    if (targetScreen) targetScreen.classList.remove('hidden');
+
+    // 2. Logic riêng cho thanh Emote
+    const emoteBar = document.getElementById('emote-control-bar');
+    if (emoteBar) {
+        // Chỉ hiện thanh emote ở màn hình Lobby, Showcase hoặc khi đang đợi nộp bài
+        const activeScreens = ['screen-lobby', 'screen-showcase', 'screen-waiting-turn'];
+        if (activeScreens.includes(id)) {
+            emoteBar.classList.remove('hidden');
+            if (id === 'screen-lobby') listenEmotes(); 
+        } else {
+            emoteBar.classList.add('hidden');
+        }
+    }
 };
     </script>
 </body>
